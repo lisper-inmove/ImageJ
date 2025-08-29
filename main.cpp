@@ -1,4 +1,4 @@
-#include "widgets/MainWidget.h"
+#include "frames/MainFrame.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    MainWidget w;
+    MainFrame w;
     // w.showMaximized();
     w.show();
     return a.exec();

@@ -1,0 +1,35 @@
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(TS_FILES ImageJ_en_AS.ts)
+
+if(WIN32)
+     set(SPD_ROOT "D:/code/cpplibs/spdlog/")
+endif()
+
+file(GLOB_RECURSE PROJECT_HEADERS
+     CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
+)
+
+file(GLOB_RECURSE PROJECT_SOURCES
+     CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx"
+)
+
+file(GLOB_RECURSE PROJECT_FORMS
+     CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/uis/*.ui"
+)
+file(GLOB_RECURSE PROJECT_RESOURCES
+     CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/qrcs/*.qrc"
+)
+
+qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})

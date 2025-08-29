@@ -2,27 +2,17 @@
 #include "image_canvas/ImageCanvasDetail.h"
 
 #include <QResizeEvent>
-#include <cmath>
+#include <QFileDialog>
 
 using namespace imgcanvas_detail;
 
-ImageCanvas::ImageCanvas(QWidget* parent)
-    : QWidget(parent) {
-    setWindowTitle(QStringLiteral("Image Selector"));
-    setAttribute(Qt::WA_OpaquePaintEvent);
-    setMouseTracking(true);
-    setCursor(Qt::CrossCursor);
-    setMinimumSize(640, 480);
-    setAcceptDrops(true);
-}
-
 void ImageCanvas::resizeEvent(QResizeEvent* ev) {
+    size_ = ev->size();
     if (img_.isNull() || !ev->oldSize().isValid()) {
         QWidget::resizeEvent(ev);
         notifyViewChanged();
         return;
     }
-
     const double bs_old = baseScale(ev->oldSize());
     const double bs_new = baseScale(ev->size());
     const double s_old  = bs_old * zoom_;
@@ -50,9 +40,6 @@ double ImageCanvas::effectiveScale() const {
     return baseScale(size()) * zoom_;
 }
 
-void ImageCanvas::openImage() {
-    chooseImage();
-}
 
 void ImageCanvas::resetView() {
     if (img_.isNull()) return;
@@ -83,16 +70,3 @@ void ImageCanvas::notifyViewChanged() {
     emit viewChanged(zoom_, offset_, effectiveScale());
 }
 
-void ImageCanvas::notifyMousePos(const QPoint& widgetPos) {
-    if (img_.isNull()) {
-        emit mousePositionChanged(widgetPos, QPointF(-1, -1), false);
-        return;
-    }
-    const double s  = baseScale(size()) * zoom_;
-    const QPointF cbo = centerBaseOrigin(this->size(), img_.size(), s);
-    const QPointF origin = cbo + offset_;
-    const QPointF u = (QPointF(widgetPos) - origin) / s; // 图像坐标
-    const bool inside = (u.x() >= 0 && u.y() >= 0 &&
-                         u.x() < img_.width() && u.y() < img_.height());
-    emit mousePositionChanged(widgetPos, u, inside);
-}
