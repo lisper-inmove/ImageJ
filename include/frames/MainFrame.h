@@ -4,10 +4,10 @@
 class ImageCanvas;
 class RightSidebar;  // 新增前置声明
 
-class MainWidget : public QWidget {
+class MainFrame : public QWidget {
     Q_OBJECT
 public:
-    explicit MainWidget(QWidget* parent = nullptr);
+    explicit MainFrame(QWidget* parent = nullptr);
 
 private:
     void buildUi();

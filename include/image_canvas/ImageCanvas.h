@@ -6,6 +6,9 @@
 #include <QPoint>
 #include <QSize>
 #include <QString>
+#include <QVector>
+#include <QImage>
+#include <memory>
 
 class QPainter;
 class QMouseEvent;
@@ -26,6 +29,10 @@ public:
     QSize   imageSize() const { return img_.size(); }
     QString imagePath() const { return imagePath_; }
     QImage  currentImage() const { return img_; }               // 供外部读取图像（QImage 是写时拷贝，安全）
+    // const QVector<QImage>& selectionHistory() const { return selectionStack_; }
+    // void clearSelectionHistory() { selectionStack_.clear(); }
+    // int  selectionHistoryMaxSize() const { return maxSelectionStack_; }
+    // void setSelectionHistoryMaxSize(int n) { maxSelectionStack_ = qMax(1, n); trimSelectionStack_(); }
 
 public slots:
     // 供右侧栏按钮调用的操作
@@ -68,4 +75,16 @@ private:
     QPointF offset_ {0, 0};     // 相对“居中原点”的平移偏移（窗口坐标）
     bool    dragging_ = false;  // 是否正在拖拽
     QPoint  lastPos_;           // 拖拽时记录上一次鼠标位置
+
+    // QVector<QImage> selectionStack_;
+    // int maxSelectionStack_{10};
+    // void pushSelection_(QImage img) {
+    //     if (img.isNull()) return;
+    //     if (selectionStack_.size() >= maxSelectionStack_) selectionStack_.pop_front();
+    //     selectionStack_.push_back(std::move(img));
+    // }
+    // void trimSelectionStack_() {
+    //     while (selectionStack_.size() > maxSelectionStack_) selectionStack_.pop_front();
+    // }
+
 };
