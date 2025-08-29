@@ -1,4 +1,4 @@
-#include "widgets/RightSidebar.h"
+#include "frames/RightSidebar.h"
 
 #include <QTabWidget>
 #include <QLabel>
@@ -11,6 +11,7 @@
 RightSidebar::RightSidebar(QWidget* parent)
     : QWidget(parent) {
     buildUi();
+    setFixedWidth(300);
 }
 
 void RightSidebar::buildUi() {
@@ -44,6 +45,7 @@ void RightSidebar::buildUi() {
     btnReset_  = new QPushButton(tr("重置视图"));
     btnActual_ = new QPushButton(tr("100% 像素"));
     btnHist_   = new QPushButton(tr("灰度直方图"));
+    btnHist_->setObjectName("btnHist_");
     opsLay->addWidget(btnOpen_);
     opsLay->addWidget(btnFit_);
     opsLay->addWidget(btnReset_);
@@ -76,12 +78,6 @@ void RightSidebar::setView(const QPointF& offset, double scale) {
 void RightSidebar::setMouse(const QPoint& widgetPos, const QPointF& imagePos, bool inside) {
     const QString w = QString("win:(%1,%2)").arg(widgetPos.x()).arg(widgetPos.y());
     QString i;
-    if (inside) {
-        i = QString("img:(%1,%2)").arg(int(std::floor(imagePos.x())))
-        .arg(int(std::floor(imagePos.y())));
-    } else {
-        i = QString("img:(%1,%2) (out)").arg(int(std::floor(imagePos.x())))
-        .arg(int(std::floor(imagePos.y())));
-    }
-    lbMouse_->setText(w + "  |  " + i);
+    i = QString("\nimg:(%1,%2)").arg(int(std::floor(imagePos.x()))).arg(int(std::floor(imagePos.y())));
+    lbMouse_->setText(w + i);
 }
