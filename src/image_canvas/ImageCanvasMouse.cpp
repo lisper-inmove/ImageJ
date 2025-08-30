@@ -1,49 +1,108 @@
-#include "image_canvas/ImageCanvas.h"
-#include "image_canvas/ImageCanvasDetail.h"
+﻿#include "image_canvas/ImageCanvas.h"
 
+#include <QRubberBand>
 #include <QMouseEvent>
+#include <QPointF>
 
-using namespace imgcanvas_detail;
+#include "widgets/ImagePreviewDialog.h"
+#include "widgets/HistogramDialog.h"
 
-void ImageCanvas::mousePressEvent(QMouseEvent* ev) {
-    if (ev->button() == Qt::LeftButton) {
-        if (img_.isNull()) {
-            openImage(); // 没图时才允许打开
-        } else {
-            dragging_ = true;
-            lastPos_  = ev->pos();
-            setCursor(Qt::ClosedHandCursor);
+void ImageCanvas::mouseMoveEvent(QMouseEvent* event) {
+	if (img_.isNull()) {
+		event->ignore();
+		return;
+	}
+	QPointF pos = event->position();
+	if (dragging_) {
+		QPoint delta = pos.toPoint() - lastPos_;
+		const QPointF wanted = delta + offset_;
+		offset_ = clampOffsetForImage(wanted);
+		lastPos_ = pos.toPoint();
+		update();
+    } else if (selecting_ && rb_) {
+        QPointF imgPoint = toImgCoord(event->pos());
+        if (imgPoint.x() != -1) {
+            selectEnd_ = event->pos();
         }
+        rb_->setGeometry(QRect(selectStart_, selectEnd_).normalized());
+        event->accept();
     }
-    QWidget::mousePressEvent(ev);
+	QWidget::mouseMoveEvent(event);
+    emit mouseMoved(pos.toPoint(), toImgCoord(pos.toPoint()));
 }
 
-void ImageCanvas::mouseMoveEvent(QMouseEvent* ev) {
-    if (dragging_ && !img_.isNull()) {
-        const QPoint delta = ev->pos() - lastPos_;
-        lastPos_ = ev->pos();
-
-        const double s = baseScale(size()) * zoom_;
-        const QPointF wanted = offset_ + delta;
-        offset_ = clampOffsetForImage(size(), img_.size(), s, wanted);
-
-        update();
-        notifyViewChanged();
-        notifyMousePos(ev->pos());
-        ev->accept();
-        return;
-    }
-    // 非拖拽也实时通报鼠标位置
-    notifyMousePos(ev->pos());
-    QWidget::mouseMoveEvent(ev);
+QPointF ImageCanvas::toImgCoord(const QPoint& widgetCoord) const {
+	if (img_.isNull()) {
+		return QPointF(-1, -1);
+	}
+	const double scale = effectiveScale();
+	const QPointF iOrigin = imageOrigin();
+	const QPointF origin = iOrigin + offset_;
+	const QPointF imgCoord = (widgetCoord - origin) / scale;
+	if (imgCoord.x() < 0 || imgCoord.x() >= img_.width() ||
+		imgCoord.y() < 0 || imgCoord.y() >= img_.height()) {
+		return QPointF(-1, -1);
+	}
+	return imgCoord;
 }
 
-void ImageCanvas::mouseReleaseEvent(QMouseEvent* ev) {
-    if (ev->button() == Qt::LeftButton && dragging_) {
+void ImageCanvas::selectRect(QMouseEvent* event) {
+    selecting_ = true;
+    selectStart_ = event->pos();
+    selectEnd_ = event->pos();
+    if (!rb_) {
+        rb_ = std::make_unique<QRubberBand>(QRubberBand::Rectangle, this);
+    }
+    rb_->setGeometry(QRect(selectStart_, QSize()));
+    rb_->show();
+    event->accept();
+}
+
+void ImageCanvas::mousePressEvent(QMouseEvent* event) {
+    const bool ctrl = event->modifiers() & Qt::ControlModifier;
+    const bool left = event->button() == Qt::LeftButton;
+    if (ctrl && left && !img_.isNull()) {
+        selectRect(event);
+    } else {
+        if (img_.isNull()) {
+            chooseImage();
+        }
+        else {
+            setCursor(Qt::ClosedHandCursor);
+            dragging_ = true;
+            lastPos_ = event->pos();
+        }
+        QWidget::mousePressEvent(event);
+    }
+}
+
+void ImageCanvas::mouseReleaseEvent(QMouseEvent* event) {
+    if (dragging_) {
         dragging_ = false;
         setCursor(Qt::CrossCursor);
-        ev->accept();
-        return;
     }
-    QWidget::mouseReleaseEvent(ev);
+    if (selecting_) {
+        onSelectFinish();
+    }
+	QWidget::mouseReleaseEvent(event);
+}
+
+
+void ImageCanvas::onSelectFinish() {
+    selecting_ = false;
+    rb_->hide();
+    QPoint start = toImgCoord(selectStart_).toPoint();
+    QPoint end = toImgCoord(selectEnd_).toPoint();
+    QRect rect = QRect(start, end).normalized();
+    if (rect.width() > 10 || rect.height() > 10) {
+        rect = rect.intersected(QRect(0, 0, img_.width(), img_.height()));
+        QImage cropped = img_.copy(rect);
+        if (hSelecting_) {
+            HistogramDialog::showForImage(cropped, this);
+            // hSelecting_ = false;
+        } else {
+            ImagePreviewDialog dlg(cropped, this);
+            dlg.exec();
+        }
+    }
 }
