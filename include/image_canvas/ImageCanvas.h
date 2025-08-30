@@ -9,6 +9,7 @@
 #include <QVector>
 #include <QImage>
 #include <memory>
+#include <QRubberBand>  // 直接包含
 
 class QPainter;
 class QMouseEvent;
@@ -29,10 +30,10 @@ public:
     QSize   imageSize() const { return img_.size(); }
     QString imagePath() const { return imagePath_; }
     QImage  currentImage() const { return img_; }               // 供外部读取图像（QImage 是写时拷贝，安全）
-    // const QVector<QImage>& selectionHistory() const { return selectionStack_; }
-    // void clearSelectionHistory() { selectionStack_.clear(); }
-    // int  selectionHistoryMaxSize() const { return maxSelectionStack_; }
-    // void setSelectionHistoryMaxSize(int n) { maxSelectionStack_ = qMax(1, n); trimSelectionStack_(); }
+    const QVector<QImage>& selectionHistory() const { return selectionStack_; }
+    void clearSelectionHistory() { selectionStack_.clear(); }
+    int  selectionHistoryMaxSize() const { return maxSelectionStack_; }
+    void setSelectionHistoryMaxSize(int n) { maxSelectionStack_ = qMax(1, n); trimSelectionStack_(); }
 
 public slots:
     // 供右侧栏按钮调用的操作
@@ -46,6 +47,7 @@ signals:
     void viewChanged(double zoom, const QPointF& offset, double scale);           // 缩放/平移/窗口变化时触发
     void mousePositionChanged(const QPoint& widgetPos, const QPointF& imagePos,   // 实时鼠标坐标
                               bool insideImage);
+    void selectionCreated(const QImage& cropped);
 
 protected:
     // 绘制与事件处理
@@ -76,15 +78,26 @@ private:
     bool    dragging_ = false;  // 是否正在拖拽
     QPoint  lastPos_;           // 拖拽时记录上一次鼠标位置
 
-    // QVector<QImage> selectionStack_;
-    // int maxSelectionStack_{10};
-    // void pushSelection_(QImage img) {
-    //     if (img.isNull()) return;
-    //     if (selectionStack_.size() >= maxSelectionStack_) selectionStack_.pop_front();
-    //     selectionStack_.push_back(std::move(img));
-    // }
-    // void trimSelectionStack_() {
-    //     while (selectionStack_.size() > maxSelectionStack_) selectionStack_.pop_front();
-    // }
+    bool selecting_{false};
+    QPoint selStartW_;                 // widget 坐标
+    QPoint selEndW_;                   // widget 坐标
+    std::unique_ptr<QRubberBand> rb_;  // 选框
+
+    // 当前画布的大小
+    QSize size_{640, 400};
+
+    QVector<QImage> selectionStack_;
+    int maxSelectionStack_{10};
+    void pushSelection_(QImage img) {
+        if (img.isNull()) return;
+        if (selectionStack_.size() >= maxSelectionStack_) selectionStack_.pop_front();
+        selectionStack_.push_back(std::move(img));
+    }
+    void trimSelectionStack_() {
+        while (selectionStack_.size() > maxSelectionStack_) selectionStack_.pop_front();
+    }
+
+    QPointF widgetToImage_(const QPoint& wpos) const;
+    QRect   widgetRectToImageRect_(QRect wr) const;
 
 };

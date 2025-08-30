@@ -12,17 +12,17 @@ ImageCanvas::ImageCanvas(QWidget* parent)
     setAttribute(Qt::WA_OpaquePaintEvent);
     setMouseTracking(true);
     setCursor(Qt::CrossCursor);
-    setMinimumSize(640, 480);
+    setMinimumSize(size_.width(), size_.height());
     setAcceptDrops(true);
 }
 
 void ImageCanvas::resizeEvent(QResizeEvent* ev) {
+    size_ = ev->size();
     if (img_.isNull() || !ev->oldSize().isValid()) {
         QWidget::resizeEvent(ev);
         notifyViewChanged();
         return;
     }
-
     const double bs_old = baseScale(ev->oldSize());
     const double bs_new = baseScale(ev->size());
     const double s_old  = bs_old * zoom_;

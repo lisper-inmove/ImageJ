@@ -19,6 +19,9 @@ inline QPointF clampOffsetForImage(const QSize& widgetSize,
                                    double scale,
                                    const QPointF& desiredOffset)
 {
+    /**
+        图片中心与视窗的中心的偏移。用图片的中心减去视窗的中心
+    */
     const double w = imgSize.width()  * scale;
     const double h = imgSize.height() * scale;
     const double dx = std::max(0.0, (w - widgetSize.width())  / 2.0);
