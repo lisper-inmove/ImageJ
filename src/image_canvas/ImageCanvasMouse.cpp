@@ -84,3 +84,17 @@ void ImageCanvas::mouseReleaseEvent(QMouseEvent* ev) {
     }
     QWidget::mouseReleaseEvent(ev);
 }
+
+void ImageCanvas::notifyMousePos(const QPoint& widgetPos) {
+    if (img_.isNull()) {
+        emit mousePositionChanged(widgetPos, QPointF(-1, -1), false);
+        return;
+    }
+    const double s  = baseScale(size()) * zoom_;
+    const QPointF cbo = centerBaseOrigin(this->size(), img_.size(), s);
+    const QPointF origin = cbo + offset_;
+    const QPointF u = (QPointF(widgetPos) - origin) / s; // 图像坐标
+    const bool inside = (u.x() >= 0 && u.y() >= 0 &&
+                         u.x() < img_.width() && u.y() < img_.height());
+    emit mousePositionChanged(widgetPos, u, inside);
+}

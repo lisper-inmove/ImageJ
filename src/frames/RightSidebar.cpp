@@ -45,6 +45,7 @@ void RightSidebar::buildUi() {
     btnReset_  = new QPushButton(tr("重置视图"));
     btnActual_ = new QPushButton(tr("100% 像素"));
     btnHist_   = new QPushButton(tr("灰度直方图"));
+    btnHist_->setObjectName("btnHist_");
     opsLay->addWidget(btnOpen_);
     opsLay->addWidget(btnFit_);
     opsLay->addWidget(btnReset_);

@@ -21,10 +21,17 @@ MainFrame::MainFrame(QWidget* parent)
     connectSignals();
 }
 
+int MainFrame::add(int a, int b) {
+    return a + b;
+}
+
 void MainFrame::buildUi() {
     auto* splitter = new QSplitter(Qt::Horizontal, this);
     canvas_  = new ImageCanvas(splitter);
     sidebar_ = new RightSidebar(splitter);
+
+    sidebar_->setObjectName("RightSidebar");
+    canvas_->setObjectName("ImageCanvas");
 
     auto* root = new QHBoxLayout(this);
     root->setContentsMargins(0,0,0,0);

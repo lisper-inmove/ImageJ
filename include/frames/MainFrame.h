@@ -8,6 +8,7 @@ class MainFrame : public QWidget {
     Q_OBJECT
 public:
     explicit MainFrame(QWidget* parent = nullptr);
+    int add(int a, int b);
 
 private:
     void buildUi();

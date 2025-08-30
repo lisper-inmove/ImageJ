@@ -1,12 +1,18 @@
 #include "widgets/histogram/HistogramDialog.h"
 #include "widgets/histogram//HistogramWidget.h"
 
+
+#ifdef UNIT_TEST
+#include <QTimer>
+#endif
+
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QPainter>
 #include <QPixmap>
 #include <QtMath>
 #include <algorithm>
+#include <iostream>
 
 HistogramDialog::HistogramDialog(const QImage& img, QWidget* parent)
     : QDialog(parent)
@@ -29,6 +35,11 @@ HistogramDialog::HistogramDialog(const QImage& img, QWidget* parent)
 void HistogramDialog::showForImage(const QImage& img, QWidget* parent) {
     if (img.isNull()) return;
     HistogramDialog dlg(img, parent);
+    dlg.setObjectName("HistograDialog");
+
+#ifdef UNIT_TEST
+    QTimer::singleShot(5000, &dlg, &HistogramDialog::accept);  // 5秒后自动关闭
+#endif
     dlg.exec();
 }
 

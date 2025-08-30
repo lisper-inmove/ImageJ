@@ -9,7 +9,7 @@
 #include <QVector>
 #include <QImage>
 #include <memory>
-#include <QRubberBand>  // 直接包含
+#include <QRubberBand>
 
 class QPainter;
 class QMouseEvent;
@@ -34,6 +34,7 @@ public:
     void clearSelectionHistory() { selectionStack_.clear(); }
     int  selectionHistoryMaxSize() const { return maxSelectionStack_; }
     void setSelectionHistoryMaxSize(int n) { maxSelectionStack_ = qMax(1, n); trimSelectionStack_(); }
+    void openImageFromPath(const QString &filepath);
 
 public slots:
     // 供右侧栏按钮调用的操作
