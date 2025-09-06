@@ -1,6 +1,9 @@
-#include "image_canvas/ImageCanvas.h"
+﻿#include "image_canvas/ImageCanvas.h"
+
+#include <QRubberBand>
 #include <QMouseEvent>
 #include <QPointF>
+#include "widgets/ImagePreviewDialog.h"
 
 void ImageCanvas::mouseMoveEvent(QMouseEvent* event) {
 	if (img_.isNull()) {
@@ -14,9 +17,16 @@ void ImageCanvas::mouseMoveEvent(QMouseEvent* event) {
 		offset_ = clampOffsetForImage(wanted);
 		lastPos_ = pos.toPoint();
 		update();
-	}
+    } else if (selecting_ && rb_) {
+        QPointF imgPoint = toImgCoord(event->pos());
+        if (imgPoint.x() != -1) {
+            selectEnd_ = event->pos();
+        }
+        rb_->setGeometry(QRect(selectStart_, selectEnd_).normalized());
+        event->accept();
+    }
 	QWidget::mouseMoveEvent(event);
-	emit mouseMoved(pos.toPoint(), toImgCoord(pos.toPoint()));
+    emit mouseMoved(pos.toPoint(), toImgCoord(pos.toPoint()));
 }
 
 QPointF ImageCanvas::toImgCoord(const QPoint& widgetCoord) const {
@@ -34,20 +44,53 @@ QPointF ImageCanvas::toImgCoord(const QPoint& widgetCoord) const {
 	return imgCoord;
 }
 
+void ImageCanvas::selectRect(QMouseEvent* event) {
+    selecting_ = true;
+    selectStart_ = event->pos();
+    selectEnd_ = event->pos();
+    if (!rb_) {
+        rb_ = std::make_unique<QRubberBand>(QRubberBand::Rectangle, this);
+    }
+    rb_->setGeometry(QRect(selectStart_, QSize()));
+    rb_->show();
+    event->accept();
+}
+
 void ImageCanvas::mousePressEvent(QMouseEvent* event) {
-	if (img_.isNull()) {
-		chooseImage();
-	}
-	else {
-		setCursor(Qt::ClosedHandCursor);
-		dragging_ = true;
-		lastPos_ = event->pos();
-	}
-	QWidget::mousePressEvent(event);
+    const bool ctrl = event->modifiers() & Qt::ControlModifier;
+    const bool left = event->button() == Qt::LeftButton;
+    if (ctrl && left && !img_.isNull()) {
+        selectRect(event);
+    } else {
+        if (img_.isNull()) {
+            chooseImage();
+        }
+        else {
+            setCursor(Qt::ClosedHandCursor);
+            dragging_ = true;
+            lastPos_ = event->pos();
+        }
+        QWidget::mousePressEvent(event);
+    }
 }
 
 void ImageCanvas::mouseReleaseEvent(QMouseEvent* event) {
-	dragging_ = false;
-	setCursor(Qt::CrossCursor);
+    if (dragging_) {
+        dragging_ = false;
+        setCursor(Qt::CrossCursor);
+    }
+    if (selecting_) {
+        selecting_ = false;
+        rb_->hide();
+        QPoint start = toImgCoord(selectStart_).toPoint();
+        QPoint end = toImgCoord(selectEnd_).toPoint();
+        QRect rect = QRect(start, end).normalized();
+        if (rect.width() > 10 || rect.height() > 10) {
+            rect = rect.intersected(QRect(0, 0, img_.width(), img_.height()));
+            QImage cropped = img_.copy(rect);
+            ImagePreviewDialog dlg(cropped, this);
+            dlg.exec();
+        }
+    }
 	QWidget::mouseReleaseEvent(event);
 }

@@ -1,7 +1,10 @@
-#pragma once
+﻿#pragma once
+
+#include <memory>
 
 #include <QResizeEvent>
 #include <QWidget>
+#include <QRubberBand>
 
 class ImageCanvas : public QWidget {
     Q_OBJECT
@@ -17,6 +20,12 @@ private:
 	bool dragging_{ false };
     QPoint lastPos_;
 
+    // 选择部分区域
+    QPoint selectStart_;
+    QPoint selectEnd_;
+    bool selecting_ {false};
+    std::unique_ptr<QRubberBand> rb_;  // 选框
+
 private:
     void paintEvent(QPaintEvent* event) override;
     void resizeEvent(QResizeEvent*) override;
@@ -31,6 +40,7 @@ private:
     void drawCrosshair(QPainter& p);
     double baseScale(const QSize& widgetSize) const;
     double effectiveScale() const;
+    void selectRect(QMouseEvent* event);
 	QPointF toImgCoord(const QPoint& widgetCoord) const;
     QPointF imageOrigin() const;
     QPointF clampOffsetForImage(const QPointF& desiredOffset);
