@@ -1,0 +1,41 @@
+#pragma once
+
+#include <QResizeEvent>
+#include <QWidget>
+
+class ImageCanvas : public QWidget {
+    Q_OBJECT
+public:
+    explicit ImageCanvas(QWidget* parent = nullptr);
+
+private:
+    QSize size_{ 1080, 800 };
+    QImage img_;
+    double scale_{ 1.0 };
+
+    QPointF offset_{0.0, 0.0};
+	bool dragging_{ false };
+    QPoint lastPos_;
+
+private:
+    void paintEvent(QPaintEvent* event) override;
+    void resizeEvent(QResizeEvent*) override;
+    void wheelEvent(QWheelEvent*) override;
+	void mouseMoveEvent(QMouseEvent* event) override;
+	void mousePressEvent(QMouseEvent* event) override;
+	void mouseReleaseEvent(QMouseEvent* event) override;
+
+private:
+    void chooseImage();
+    bool loadImage(const QString path);
+    void drawCrosshair(QPainter& p);
+    double baseScale(const QSize& widgetSize) const;
+    double effectiveScale() const;
+	QPointF toImgCoord(const QPoint& widgetCoord) const;
+    QPointF imageOrigin() const;
+    QPointF clampOffsetForImage(const QPointF& desiredOffset);
+
+signals:
+    void imageInfoChanged(const QString& path, const QSize& size);
+	void mouseMoved(const QPoint& pos, const QPointF& imgPos);
+};
