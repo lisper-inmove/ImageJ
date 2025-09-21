@@ -9,3 +9,4 @@ CMakeUserPresets.json
 
 CMakeLists.txt.user
 .cache
+ImageJ.log
