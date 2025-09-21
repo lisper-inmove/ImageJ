@@ -54,6 +54,7 @@ void MainFrame::connectSignals() {
     connect(canvas_, &ImageCanvas::imageInfoChanged, this, [this](const QString& path, const QSize& size) {
         LOG_DEBUG("ImageInfoChanged");
         rightSidebar_->imageInfoChanged(path, size);
+        rightSidebar_->updateImagePixelInfo(path);
     });
     connect(canvas_, &ImageCanvas::mouseMoved, this, [this](const QPoint& pos, const QPointF& imgPos) {
         LOG_DEBUG("Mouse moved");

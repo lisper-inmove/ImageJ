@@ -6,14 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(TS_FILES ImageJ_en_AS.ts)
 
-if(WIN32)
-     set(SPD_ROOT "D:/code/cpplibs/spdlog/")
-     set(YAML_ROOT "D:/code/cpplibs/yaml-cpp/")
-   elseif(UNIX)
-     set(SPD_ROOT "/home/inmove/code/cpplibs/spdlog/")
-     set(YAML_ROOT "/home/inmove/code/cpplibs/yaml-cpp/")
-endif()
-
 file(GLOB_RECURSE PROJECT_HEADERS
      CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"

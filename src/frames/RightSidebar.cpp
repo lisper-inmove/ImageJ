@@ -42,8 +42,8 @@ void RightSidebar::imageInfoChanged(const QString& path, const QSize& size) {
 }
 
 void RightSidebar::updateImagePixelInfo(const QString& path) {
-    // cv::Mat img = cv::imread(path.toStdString());
-    // cv::Scalar m_bgr = cv::mean(img);
+    cv::Mat img = cv::imread(path.toStdString());
+    cv::Scalar m_bgr = cv::mean(img);
     // lbPixel_->setText(QString("Mean: %1\n").arg(m_bgr.val()));
 }
 

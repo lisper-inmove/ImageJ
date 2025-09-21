@@ -10,12 +10,12 @@ public:
     RightSidebar(QWidget* parent);
     ~RightSidebar() override = default;
     void imageInfoChanged(const QString& path, const QSize& size);
+    void updateImagePixelInfo(const QString& path);
 	void mouseMoved(const QPoint& pos, const QPointF& imgPos);
 
 private:
     void build();
     void connectSignals();
-    void updateImagePixelInfo(const QString& path);
 
 private:
     QTabWidget* tabs_{nullptr};
