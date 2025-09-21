@@ -2,9 +2,6 @@ enable_testing()
 
 # add_definitions(-DUNIT_TEST)
 
-set(TEST_NAME "tester")
-set(GTEST_ROOT "/home/inmove/code/cpplibs/googletest")
-
 file(GLOB_RECURSE TEST_SOURCES
      CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
@@ -38,7 +35,3 @@ install(TARGETS ${TEST_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 qt_finalize_executable(${TEST_NAME})
-
-target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(${TEST_NAME} PRIVATE ${SPD_ROOT}/include)
-target_include_directories(${TEST_NAME} PRIVATE ${YAML_ROOT}/include)

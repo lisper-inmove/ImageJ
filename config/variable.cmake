@@ -24,3 +24,5 @@ endif()
 
 set(SPD_ROOT "${CPPLIBS}/spdlog/")
 set(YAML_ROOT "${CPPLIBS}/yaml-cpp/")
+
+file(GLOB OPENCV_LIBS "${DIR_OPENCV_ROOT}/lib/*.lib")

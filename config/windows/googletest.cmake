@@ -26,7 +26,6 @@ target_include_directories(${TEST_NAME} PRIVATE "${GTEST_ROOT}/googletest/includ
 
 target_link_libraries(${TEST_NAME} PRIVATE "${SPD_ROOT}/spdlogd.lib")
 target_link_libraries(${TEST_NAME} PRIVATE ${OPENCV_LIBS})
-
 target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt6::Test)
 
 include(GNUInstallDirs)
@@ -37,8 +36,5 @@ install(TARGETS ${TEST_NAME}
 )
 qt_finalize_executable(${TEST_NAME})
 
-target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(${TEST_NAME} PRIVATE ${SPD_ROOT}/include)
-target_include_directories(${TEST_NAME} PRIVATE ${YAML_ROOT}/include)
-target_include_directories(${TEST_NAME} PRIVATE ${DIR_OPENCV_ROOT}/include)
+
 
