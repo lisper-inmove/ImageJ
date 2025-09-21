@@ -1,4 +1,4 @@
-set(CMAKE_AUTOUIC ON)
+﻿set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
@@ -9,6 +9,9 @@ set(TS_FILES ImageJ_en_AS.ts)
 if(WIN32)
      set(SPD_ROOT "D:/code/cpplibs/spdlog/")
      set(YAML_ROOT "D:/code/cpplibs/yaml-cpp/")
+   elseif(UNIX)
+     set(SPD_ROOT "/home/inmove/code/cpplibs/spdlog/")
+     set(YAML_ROOT "/home/inmove/code/cpplibs/yaml-cpp/")
 endif()
 
 file(GLOB_RECURSE PROJECT_HEADERS
@@ -31,3 +34,22 @@ file(GLOB_RECURSE PROJECT_RESOURCES
 )
 
 qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+
+qt_add_executable(${PROJECT_NAME}
+    MANUAL_FINALIZATION
+    ${PROJECT_HEADERS}
+    ${PROJECT_SOURCES}
+    ${PROJECT_FORMS}
+    ${PROJECT_RESOURCES}
+    main.cpp
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+
+include(GNUInstallDirs)
+install(TARGETS ${PROJECT_NAME}
+    BUNDLE DESTINATION .
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+qt_finalize_executable(${PROJECT_NAME})

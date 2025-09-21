@@ -1,9 +1,9 @@
-﻿enable_testing()
+enable_testing()
 
 # add_definitions(-DUNIT_TEST)
 
 set(TEST_NAME "tester")
-set(GTEST_ROOT "D:/code/cpplibs/googletest")
+set(GTEST_ROOT "/home/inmove/code/cpplibs/googletest")
 
 file(GLOB_RECURSE TEST_SOURCES
      CONFIGURE_DEPENDS
@@ -26,9 +26,10 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Test)
 file(GLOB GTEST_LIBS "${GTEST_ROOT}/build/lib/Debug/*.lib")
 target_link_libraries(${TEST_NAME} PRIVATE ${GTEST_LIBS})
 target_include_directories(${TEST_NAME} PRIVATE "${GTEST_ROOT}/googletest/include")
+
 target_link_libraries(${TEST_NAME} PRIVATE "${SPD_ROOT}/spdlogd.lib")
+
 target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt6::Test)
-target_link_libraries(${TEST_NAME} PRIVATE ${OpenCV_LIBS})
 
 include(GNUInstallDirs)
 install(TARGETS ${TEST_NAME}
@@ -41,4 +42,3 @@ qt_finalize_executable(${TEST_NAME})
 target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(${TEST_NAME} PRIVATE ${SPD_ROOT}/include)
 target_include_directories(${TEST_NAME} PRIVATE ${YAML_ROOT}/include)
-target_include_directories(${TEST_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS})

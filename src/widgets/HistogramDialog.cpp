@@ -1,6 +1,5 @@
-#include "widgets/HistogramDialog.h"
-#include "widgets//HistogramWidget.h"
-
+﻿#include "widgets/HistogramDialog.h"
+#include "widgets/HistogramWidget.h"
 
 #ifdef UNIT_TEST
 #include <QTimer>
@@ -12,7 +11,6 @@
 #include <QPixmap>
 #include <QtMath>
 #include <algorithm>
-#include <iostream>
 
 HistogramDialog::HistogramDialog(const QImage& img, QWidget* parent)
     : QDialog(parent)

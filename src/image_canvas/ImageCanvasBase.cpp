@@ -98,7 +98,7 @@ void ImageCanvas::wheelEvent(QWheelEvent* event) {
     const QPointF originNew = m - u * newScale;
     QPointF wanted = originNew - cboNew;
 	offset_ = clampOffsetForImage(wanted);
-    const QPointF iOrigin = imageOrigin();
+    // const QPointF iOrigin = imageOrigin();
 
     update();
     event->accept();
