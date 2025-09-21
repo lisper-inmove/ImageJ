@@ -2,10 +2,12 @@ message(STATUS "Platform: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
 # ---------------- Spdlog ---------------------------
-target_link_libraries(${PROJECT_NAME} PRIVATE "${SPD_ROOT}/spdlog.lib")
+find_package(spdlog REQUIRED)
 
-# ---------------- YAML cpp ---------------------------
-target_link_libraries(${PROJECT_NAME} PRIVATE "${YAML_ROOT}/yaml-cpp.lib")
+# ---------------- yaml-cpp ---------------------------
+find_package(yaml-cpp REQUIRED)
 
 # ---------------- OpenCV ---------------------------
-target_link_libraries(${PROJECT_NAME} PRIVATE ${OPENCV_LIBS})
+find_package(OpenCV REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS})

@@ -1,6 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.16)
 
 project(ImageJ VERSION 0.1 LANGUAGES CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)

@@ -6,3 +6,6 @@ out
 CMakeLists.txt.user.*
 CMakePresets.json
 CMakeUserPresets.json
+
+CMakeLists.txt.user
+.cache
