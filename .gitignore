@@ -2,3 +2,7 @@ build
 linux-build
 .vs
 out
+
+CMakeLists.txt.user.*
+CMakePresets.json
+CMakeUserPresets.json
