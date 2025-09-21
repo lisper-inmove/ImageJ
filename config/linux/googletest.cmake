@@ -18,14 +18,16 @@ qt_add_executable(${TEST_NAME}
 )
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Test)
+find_package(GTest REQUIRED)
+find_package(Threads REQUIRED)
 
 # --------------------- googletest -----------------------------
-file(GLOB GTEST_LIBS "${GTEST_ROOT}/build/lib/Debug/*.lib")
-target_link_libraries(${TEST_NAME} PRIVATE ${GTEST_LIBS})
-target_include_directories(${TEST_NAME} PRIVATE "${GTEST_ROOT}/googletest/include")
+target_link_libraries(${TEST_NAME} PRIVATE GTest::gtest GTest::gtest_main pthread)
 
-target_link_libraries(${TEST_NAME} PRIVATE "${SPD_ROOT}/spdlogd.lib")
-target_link_libraries(${TEST_NAME} PRIVATE ${OPENCV_LIBS})
+# --------------------- OpenCV ---------------------------------
+target_link_libraries(${TEST_NAME} PRIVATE ${OpenCV_LIBS})
+target_include_directories(${TEST_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS})
+
 target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt6::Test)
 
 include(GNUInstallDirs)
