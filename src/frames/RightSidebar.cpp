@@ -43,8 +43,9 @@ void RightSidebar::imageInfoChanged(const QString& path, const QSize& size) {
 
 void RightSidebar::updateImagePixelInfo(const QString& path) {
     cv::Mat img = cv::imread(path.toStdString());
-    cv::Scalar m_bgr = cv::mean(img);
-    // lbPixel_->setText(QString("Mean: %1\n").arg(m_bgr.val()));
+    cv::Scalar mean_bgr = cv::mean(img);
+    double mean_gray = 0.114 * mean_bgr[0] + 0.587 * mean_bgr[1] + 0.299 * mean_bgr[2];
+    lbPixel_->setText(QString("Mean: %1\n").arg(mean_gray));
 }
 
 void RightSidebar::mouseMoved(const QPoint& pos, const QPointF& imgPos) {
