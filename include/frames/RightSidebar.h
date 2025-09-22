@@ -27,5 +27,5 @@ private:
     QLabel* lbMouse_{ nullptr };
     // 像素统计信息
     QLabel* lbPixel_{ nullptr };
-    int32_t width_{300};
+    int32_t width_{400};
 };

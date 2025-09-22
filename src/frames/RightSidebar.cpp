@@ -3,7 +3,10 @@
 #include <QTabWidget>
 #include <QFormLayout>
 #include <QLabel>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
 #include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
 
 #include "frames/RightSidebar.h"
 
@@ -43,9 +46,21 @@ void RightSidebar::imageInfoChanged(const QString& path, const QSize& size) {
 
 void RightSidebar::updateImagePixelInfo(const QString& path) {
     cv::Mat img = cv::imread(path.toStdString());
-    cv::Scalar mean_bgr = cv::mean(img);
+
+    // 灰度图 + Mask
+    cv::Mat gray;
+    cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+    cv::Mat mask = (gray > 128);
+
+    // 均值
+    cv::Scalar mean_bgr = cv::mean(img, mask);
     double mean_gray = 0.114 * mean_bgr[0] + 0.587 * mean_bgr[1] + 0.299 * mean_bgr[2];
-    lbPixel_->setText(QString("Mean: %1\n").arg(mean_gray));
+
+    // 均值 + 标准差
+    cv::Scalar mean, stddev;
+    cv::meanStdDev(img, mean, stddev, mask);
+
+    lbPixel_->setText(QString("RGBMean: BGR(%1,%2,%3)\nGray Mean: %4\nMeanStdDev: %5\n").arg(mean_bgr[0]).arg(mean_bgr[1]).arg(mean_bgr[2]).arg(mean_gray).arg(stddev[0]));
 }
 
 void RightSidebar::mouseMoved(const QPoint& pos, const QPointF& imgPos) {
