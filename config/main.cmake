@@ -1,20 +1,14 @@
-qt_add_executable(${PROJECT_NAME}
-    MANUAL_FINALIZATION
-    ${PROJECT_HEADERS}
-    ${PROJECT_SOURCES}
-    ${PROJECT_FORMS}
-    ${PROJECT_RESOURCES}
-    main.cpp
-)
+﻿if(WIN32)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${SPD_ROOT}/include)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${YAML_ROOT}/include)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${DIR_OPENCV_ROOT}/include)
+endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-
-include(GNUInstallDirs)
-install(TARGETS ${PROJECT_NAME}
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-qt_finalize_executable(${PROJECT_NAME})
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_include_directories(${TEST_NAME} PRIVATE ${SPD_ROOT}/include)
+  target_include_directories(${TEST_NAME} PRIVATE ${YAML_ROOT}/include)
+  target_include_directories(${TEST_NAME} PRIVATE ${DIR_OPENCV_ROOT}/include)
+  target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)

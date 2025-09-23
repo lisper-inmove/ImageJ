@@ -1,9 +1,6 @@
-enable_testing()
+﻿enable_testing()
 
 # add_definitions(-DUNIT_TEST)
-
-set(TEST_NAME "tester")
-set(GTEST_ROOT "D:/code/cpplibs/googletest")
 
 file(GLOB_RECURSE TEST_SOURCES
      CONFIGURE_DEPENDS
@@ -27,10 +24,8 @@ file(GLOB GTEST_LIBS "${GTEST_ROOT}/build/lib/Debug/*.lib")
 target_link_libraries(${TEST_NAME} PRIVATE ${GTEST_LIBS})
 target_include_directories(${TEST_NAME} PRIVATE "${GTEST_ROOT}/googletest/include")
 
-# ---------------- Spdlog ---------------------------
-target_include_directories(${TEST_NAME} PRIVATE "${SPD_ROOT}/include")
 target_link_libraries(${TEST_NAME} PRIVATE "${SPD_ROOT}/spdlogd.lib")
-
+target_link_libraries(${TEST_NAME} PRIVATE ${OPENCV_LIBS})
 target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt6::Test)
 
 include(GNUInstallDirs)
@@ -41,4 +36,5 @@ install(TARGETS ${TEST_NAME}
 )
 qt_finalize_executable(${TEST_NAME})
 
-target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+

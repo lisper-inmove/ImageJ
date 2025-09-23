@@ -1,0 +1,28 @@
+﻿set(TEST_NAME "tester")
+set(PROJ_NAME "ImageJ")
+
+if(WIN32)
+  set(CPPLIBS "D:/code/cpplibs")
+elseif(UNIX)
+  set(CPPLIBS "/home/inmove/code/cpplibs")
+endif()
+
+if(WIN32)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(DIR_OPENCV_ROOT "${CPPLIBS}/opencv-debug/")
+    set(GTEST_ROOT "${CPPLIBS}/googletest")
+  elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(DIR_OPENCV_ROOT "${CPPLIBS}/opencv-release/")
+  endif()
+elseif(UNIX)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(DIR_OPENCV_ROOT "${CPPLIBS}/opencv-debug/")
+  elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(DIR_OPENCV_ROOT "${CPPLIBS}/opencv-release/")
+  endif()
+endif()
+
+set(SPD_ROOT "${CPPLIBS}/spdlog/")
+set(YAML_ROOT "${CPPLIBS}/yaml-cpp/")
+
+file(GLOB OPENCV_LIBS "${DIR_OPENCV_ROOT}/lib/*.lib")
