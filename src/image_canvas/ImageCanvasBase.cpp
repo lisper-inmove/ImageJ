@@ -9,10 +9,12 @@
 ImageCanvas::ImageCanvas(QWidget* parent)
     : QWidget(parent) {
     setWindowTitle(QStringLiteral("Image Selector"));
+    // 设置Qt的容器属性。这个控件在paintEvent里会完全绘制自己的区域，不需要Qt在绘制之前帮你清理背景
     setAttribute(Qt::WA_OpaquePaintEvent);
     setMouseTracking(true);
     setCursor(Qt::CrossCursor);
     setMinimumSize(size_.width(), size_.height());
+    // 开启drag & drop
     setAcceptDrops(true);
 
     //QPalette pal = palette();
@@ -26,8 +28,8 @@ void ImageCanvas::openImage() {
 }
 
 void ImageCanvas::chooseImage() {
-	const QString filter = QStringLiteral("Images (*.png *.xpm *.jpg *.jpeg *.bmp);;All files (*.*)");
-	const QString path = QFileDialog::getOpenFileName(this, tr("Open Image"), QString(), filter);
+    const QString filter = QStringLiteral("Images (*.png *.xpm *.jpg *.jpeg *.bmp);;All files (*.*)");
+    const QString path = QFileDialog::getOpenFileName(this, tr("Open Image"), QString(), filter);
     if (!path.isEmpty()) {
         loadImage(path);
         emit imageInfoChanged(path, img_.size());

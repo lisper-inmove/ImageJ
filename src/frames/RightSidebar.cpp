@@ -28,7 +28,7 @@ void RightSidebar::build() {
 
     lbPath_ = new QLabel(tr("-"));
     lbPath_->setWordWrap(true);
-	lbSize_ = new QLabel(tr("-"));
+    lbSize_ = new QLabel(tr("-"));
     lbMouse_ = new QLabel(tr("-"));
     lbPixel_ = new QLabel(tr("-"));
 
@@ -41,7 +41,7 @@ void RightSidebar::build() {
 
 void RightSidebar::imageInfoChanged(const QString& path, const QSize& size) {
     lbPath_->setText(path);
-	lbSize_->setText(QString("%1 x %2").arg(size.width()).arg(size.height()));
+    lbSize_->setText(QString("%1 x %2").arg(size.width()).arg(size.height()));
 }
 
 void RightSidebar::updateImagePixelInfo(const QString& path) {

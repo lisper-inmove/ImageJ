@@ -25,7 +25,7 @@ private:
     QImage img_;
     double scale_{ 1.0 };
     QPointF offset_{0.0, 0.0};
-	bool dragging_{ false };
+    bool dragging_{ false };
     QPoint lastPos_;
 
     // 选择部分区域
