@@ -4,6 +4,7 @@
 #include <QMouseEvent>
 #include <QtMath>
 #include <algorithm>
+#include <opencv2/opencv.hpp>
 
 HistogramWidget::HistogramWidget(QWidget* parent)
     : QWidget(parent) {
@@ -11,29 +12,42 @@ HistogramWidget::HistogramWidget(QWidget* parent)
     setMouseTracking(true);  // 允许无按键移动也触发 mouseMoveEvent
 }
 
-void HistogramWidget::setImage(const QImage& img) {
+void HistogramWidget::setImage(const cv::Mat& img) {
     std::fill(std::begin(hist_), std::end(hist_), 0);
     maxv_ = 1;
     total_ = 0;
     hoverIndex_ = -1;
 
-    if (!img.isNull()) {
-        if (img.format() == QImage::Format_Grayscale8) {
-            for (int y = 0; y < img.height(); ++y) {
-                const uchar* line = img.constScanLine(y);
-                for (int x = 0; x < img.width(); ++x) {
+    if (!img.empty()) {
+        if (img.channels() == 1) { // 灰度图
+            for (int i = 0; i < img.rows; i++) {
+                const uchar* line = img.ptr<uchar>(i);
+                for (int x = 0; x < img.cols; ++x) {
                     ++hist_[line[x]];
                 }
             }
-        } else {
-            QImage conv = img.convertToFormat(QImage::Format_ARGB32);
-            for (int y = 0; y < conv.height(); ++y) {
-                const QRgb* line = reinterpret_cast<const QRgb*>(conv.constScanLine(y));
-                for (int x = 0; x < conv.width(); ++x) {
-                    ++hist_[qGray(line[x])];
+        } else { // RGB图
+            // 彩色图，先转灰度
+            cv::Mat gray;
+            cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+            for (int y = 0; y < gray.rows; ++y) {
+                const uchar* line = gray.ptr<uchar>(y);
+                for (int x = 0; x < gray.cols; ++x) {
+                    ++hist_[line[x]];
                 }
             }
+            std::vector<cv::Mat> mv;
+            cv::split(img, mv);
+            int channels[] = {0};
+            int bins = 256;
+            int histSize[] = {bins};
+            float rgb_ranges[] = {0, 256};
+            const float* ranges[] = {rgb_ranges};
+            cv::calcHist(&mv[0], 1, channels, cv::Mat(), hist_g_, 1, histSize, ranges, true, false);
+            cv::calcHist(&mv[1], 1, channels, cv::Mat(), hist_b_, 1, histSize, ranges, true, false);
+            cv::calcHist(&mv[2], 1, channels, cv::Mat(), hist_r_, 1, histSize, ranges, true, false);
         }
+
         for (int i = 0; i < 256; ++i) {
             maxv_ = std::max(maxv_, hist_[i]);
             total_ += hist_[i];
@@ -60,7 +74,7 @@ void HistogramWidget::paintEvent(QPaintEvent* /*ev*/) {
 
     // 直方图
     for (int i = 0; i < 256; ++i) {
-        const double v = double(hist_[i]) / double(maxv_);
+        const double v = double(hist_g_.at<float>(i)) / double(maxv_);
         const int hgt = int(std::round(v * innerH));
         const int x   = padL_ + (i * innerW) / 256;
         const int y   = padT_ + innerH - hgt;

@@ -1,16 +1,17 @@
 #pragma once
 #include <QDialog>
 #include <QImage>
+#include <opencv2/opencv.hpp>
 
 class QLabel;
 
 class HistogramDialog : public QDialog {
     Q_OBJECT
 public:
-    explicit HistogramDialog(const QImage& img, QWidget* parent = nullptr);
+    explicit HistogramDialog(const cv::Mat& img, QWidget* parent = nullptr);
 
     // 便捷调用：直接弹出对话框
-    static void showForImage(const QImage& img, QWidget* parent = nullptr);
+    static void showForImage(const cv::Mat& img, QWidget* parent = nullptr);
 
     // 工具方法：计算/绘制（如需别处复用）
     static void computeGrayHistogram(const QImage& img, quint64 (&hist)[256], quint64& maxv);

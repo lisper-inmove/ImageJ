@@ -5,6 +5,11 @@
 #include <QResizeEvent>
 #include <QWidget>
 #include <QRubberBand>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
+
 
 class ImageCanvas : public QWidget {
     Q_OBJECT
@@ -16,9 +21,9 @@ public:
 
 private:
     QSize size_{ 1080, 800 };
+    cv::Mat cv_img_;
     QImage img_;
     double scale_{ 1.0 };
-
     QPointF offset_{0.0, 0.0};
 	bool dragging_{ false };
     QPoint lastPos_;

@@ -2,8 +2,7 @@
 #include <QPainter>
 #include <QResizeEvent>
 #include "logger/logger.h"
-
-#include <iostream>
+#include <opencv2/opencv.hpp>
 
 #include "image_canvas/ImageCanvas.h"
 
@@ -16,10 +15,10 @@ ImageCanvas::ImageCanvas(QWidget* parent)
     setMinimumSize(size_.width(), size_.height());
     setAcceptDrops(true);
 
-	//QPalette pal = palette();
+    //QPalette pal = palette();
     //pal.setColor(QPalette::Window, Qt::white);
-	//setAutoFillBackground(true);
-	//setPalette(pal);
+    //setAutoFillBackground(true);
+    //setPalette(pal);
 }
 
 void ImageCanvas::openImage() {
@@ -40,6 +39,7 @@ bool ImageCanvas::loadImage(const QString path) {
     if (!tmp.load(path)) {
         return false;
     }
+    cv_img_ = cv::imread(path.toStdString());
     img_ = std::move(tmp);
     update();
     return true;
@@ -118,7 +118,7 @@ void ImageCanvas::drawCrosshair(QPainter& p) {
 	p.setRenderHint(QPainter::Antialiasing, false);
     p.setPen(pen);
 
-    p.drawLine(QPoint(center.x() - L / 2, center.y()), QPoint(center.x() + L / 2, center.y()));    
+    p.drawLine(QPoint(center.x() - L / 2, center.y()), QPoint(center.x() + L / 2, center.y()));
     p.drawLine(QPoint(center.x(), center.y() - L / 2), QPoint(center.x(), center.y() + L / 2));
     p.setBrush(hasImg ? Qt::red : Qt::green);
 	p.drawEllipse(center, 3, 3);

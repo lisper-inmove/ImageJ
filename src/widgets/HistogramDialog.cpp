@@ -11,8 +11,9 @@
 #include <QPixmap>
 #include <QtMath>
 #include <algorithm>
+#include <opencv2/opencv.hpp>
 
-HistogramDialog::HistogramDialog(const QImage& img, QWidget* parent)
+HistogramDialog::HistogramDialog(const cv::Mat& img, QWidget* parent)
     : QDialog(parent)
 {
     auto* histWidget = new HistogramWidget;
@@ -30,8 +31,8 @@ HistogramDialog::HistogramDialog(const QImage& img, QWidget* parent)
     lay->addWidget(statsLabel_);
 }
 
-void HistogramDialog::showForImage(const QImage& img, QWidget* parent) {
-    if (img.isNull()) return;
+void HistogramDialog::showForImage(const cv::Mat& img, QWidget* parent) {
+    if (img.empty()) return;
     HistogramDialog dlg(img, parent);
     dlg.setObjectName("HistograDialog");
 

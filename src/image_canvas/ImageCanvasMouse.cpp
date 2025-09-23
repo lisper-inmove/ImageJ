@@ -3,6 +3,7 @@
 #include <QRubberBand>
 #include <QMouseEvent>
 #include <QPointF>
+#include <opencv2/opencv.hpp>
 
 #include "widgets/ImagePreviewDialog.h"
 #include "widgets/HistogramDialog.h"
@@ -94,15 +95,14 @@ void ImageCanvas::onSelectFinish() {
     QPoint start = toImgCoord(selectStart_).toPoint();
     QPoint end = toImgCoord(selectEnd_).toPoint();
     QRect rect = QRect(start, end).normalized();
-    if (rect.width() > 10 || rect.height() > 10) {
-        rect = rect.intersected(QRect(0, 0, img_.width(), img_.height()));
-        QImage cropped = img_.copy(rect);
-        if (hSelecting_) {
-            HistogramDialog::showForImage(cropped, this);
-            // hSelecting_ = false;
-        } else {
-            ImagePreviewDialog dlg(cropped, this);
-            dlg.exec();
-        }
+    rect = rect.intersected(QRect(0, 0, img_.width(), img_.height()));
+    cv::Rect roi(0, 0, img_.width(), img_.height());
+    cv::Mat cropped = cv_img_(roi);
+    if (hSelecting_) {
+        HistogramDialog::showForImage(cropped, this);
+    } else {
+        ImagePreviewDialog dlg(img_.copy(rect), this);
+        dlg.exec();
     }
+
 }
