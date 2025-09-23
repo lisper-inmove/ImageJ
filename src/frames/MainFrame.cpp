@@ -68,4 +68,6 @@ void MainFrame::buildRightside(QSplitter* splitter) {
 }
 
 void MainFrame::connectSignals() {
+    // 选择图片
+    connect(act_open_, &QAction::triggered, body_, &JBody::open);
 }

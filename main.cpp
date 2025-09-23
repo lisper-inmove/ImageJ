@@ -1,4 +1,5 @@
 ﻿#include "frames/MainFrame.h"
+#include "utils/logger.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -17,6 +18,8 @@ int main(int argc, char *argv[])
             break;
         }
     }
+    setSpdlog();
+    LOG_INFO("ImageJ Version 0.0.4 started...");
     MainFrame w;
     w.show();
     return a.exec();
