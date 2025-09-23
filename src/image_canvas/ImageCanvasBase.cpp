@@ -60,17 +60,17 @@ void ImageCanvas::paintEvent(QPaintEvent*) {
 
         p.save();
         // 将坐标系原点平移到图片绘制的起点
-		p.translate(origin);
+	p.translate(origin);
         p.scale(scale, scale);
 
         p.drawImage(0, 0, img_);
     }
-	drawCrosshair(p);
+    drawCrosshair(p);
 }
 
 void ImageCanvas::resizeEvent(QResizeEvent* event) {
     QSize oldSize = event->oldSize();
-	QSize newSize = event->size();
+    QSize newSize = event->size();
     LOG_DEBUG("ResizeEvent oldSize: {}, {}", oldSize.height(), oldSize.width());
     LOG_DEBUG("ResizeEvent newSize: {}, {}", newSize.height(), newSize.width());
 }
@@ -82,7 +82,7 @@ void ImageCanvas::wheelEvent(QWheelEvent* event) {
     }
     const QPointF m = event->position();
 
-	double oldScale = effectiveScale();
+    double oldScale = effectiveScale();
     const int delta = event->angleDelta().y();
     const QPointF cboOld = imageOrigin();
     const QPointF originOld = cboOld + offset_;
@@ -93,13 +93,13 @@ void ImageCanvas::wheelEvent(QWheelEvent* event) {
         scale_ /= 1.1;
     }
     scale_ = std::clamp(scale_, 0.1, 10.0);
-	double newScale = effectiveScale();
+    double newScale = effectiveScale();
 
     const QPointF u = (m - originOld) / oldScale;
     const QPointF cboNew = imageOrigin();
     const QPointF originNew = m - u * newScale;
     QPointF wanted = originNew - cboNew;
-	offset_ = clampOffsetForImage(wanted);
+    offset_ = clampOffsetForImage(wanted);
     // const QPointF iOrigin = imageOrigin();
 
     update();
@@ -107,9 +107,9 @@ void ImageCanvas::wheelEvent(QWheelEvent* event) {
 }
 
 void ImageCanvas::drawCrosshair(QPainter& p) {
-	const bool hasImg = !img_.isNull();
+    const bool hasImg = !img_.isNull();
     int L = int(0.3 * std::min(width(), height()));
-	QPoint center = rect().center();
+    QPoint center = rect().center();
     if (hasImg) {
         L = int(0.3 * std::min(img_.width(), img_.height()));
         center = QPoint(img_.width() / 2, img_.height() / 2);
@@ -117,13 +117,13 @@ void ImageCanvas::drawCrosshair(QPainter& p) {
     QPen pen(hasImg ? Qt::red : Qt::green);
     pen.setWidth(1);
     pen.setCosmetic(true);
-	p.setRenderHint(QPainter::Antialiasing, false);
+    p.setRenderHint(QPainter::Antialiasing, false);
     p.setPen(pen);
 
     p.drawLine(QPoint(center.x() - L / 2, center.y()), QPoint(center.x() + L / 2, center.y()));
     p.drawLine(QPoint(center.x(), center.y() - L / 2), QPoint(center.x(), center.y() + L / 2));
     p.setBrush(hasImg ? Qt::red : Qt::green);
-	p.drawEllipse(center, 3, 3);
+    p.drawEllipse(center, 3, 3);
 }
 
 double ImageCanvas::baseScale(const QSize& widgetSize) const {
@@ -131,8 +131,8 @@ double ImageCanvas::baseScale(const QSize& widgetSize) const {
         将图片等比缩放以适应窗口大小，返回窗口与图片的缩放比例
     */
     if (img_.isNull() || img_.width() == 0 || img_.height() == 0) return 1.0;
-	const double sx = double(widgetSize.width()) / img_.width();
-	const double sy = double(widgetSize.height()) / img_.height();
+    const double sx = double(widgetSize.width()) / img_.width();
+    const double sy = double(widgetSize.height()) / img_.height();
     return std::min(sx, sy);
 }
 
@@ -149,7 +149,7 @@ QPointF ImageCanvas::imageOrigin() const {
     const double x = img_.width() * scale / 2.0;
     const double y = img_.height() * scale / 2.0;
     QSize widgetSize = size();
-	return QPointF(widgetSize.width() / 2.0 - x, widgetSize.height() / 2.0 - y);
+    return QPointF(widgetSize.width() / 2.0 - x, widgetSize.height() / 2.0 - y);
 }
 
 // 将 offset 限制在 [-dx,+dx] × [-dy,+dy]，避免图片被拖出可视区域
@@ -157,9 +157,9 @@ QPointF ImageCanvas::clampOffsetForImage(const QPointF& desiredOffset) {
     /**
         图片中心与视窗的中心的偏移。用图片的中心减去视窗的中心
     */
-	double scale = effectiveScale();
-	QSize widgetSize = size();
-	QSize imgSize = img_.size();
+    double scale = effectiveScale();
+    QSize widgetSize = size();
+    QSize imgSize = img_.size();
 
     const double w = imgSize.width() * scale;
     const double h = imgSize.height() * scale;

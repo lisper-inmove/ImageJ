@@ -41,9 +41,9 @@ private:
     void paintEvent(QPaintEvent* event) override;
     void resizeEvent(QResizeEvent*) override;
     void wheelEvent(QWheelEvent*) override;
-	void mouseMoveEvent(QMouseEvent* event) override;
-	void mousePressEvent(QMouseEvent* event) override;
-	void mouseReleaseEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
     void chooseImage();
@@ -53,11 +53,11 @@ private:
     double effectiveScale() const;
     void selectRect(QMouseEvent* event);
     void onSelectFinish();
-	QPointF toImgCoord(const QPoint& widgetCoord) const;
+    QPointF toImgCoord(const QPoint& widgetCoord) const;
     QPointF imageOrigin() const;
     QPointF clampOffsetForImage(const QPointF& desiredOffset);
 
 signals:
     void imageInfoChanged(const QString& path, const QSize& size);
-	void mouseMoved(const QPoint& pos, const QPointF& imgPos);
+    void mouseMoved(const QPoint& pos, const QPointF& imgPos);
 };
