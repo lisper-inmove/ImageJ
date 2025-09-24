@@ -17,6 +17,7 @@ qt_add_executable(${TEST_NAME}
     tests/test.cpp
 )
 
+target_compile_definitions(${TEST_NAME} PRIVATE TEST_ENVIRONMENT)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Test)
 
 # --------------------- googletest -----------------------------
@@ -35,6 +36,4 @@ install(TARGETS ${TEST_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 qt_finalize_executable(${TEST_NAME})
-
-
 

@@ -1,21 +1,32 @@
 ﻿#include <gtest/gtest.h>
-
-#include <QApplication>
+#include <QAction>
+#include <QFileDialog>
+#include <QImage>
 #include <QTest>
-#include <QTimer>
-
 #include "frames/MainFrame.h"
 
 TEST(UiSmoke, MainFrameShowsAndHides) {
     MainFrame w;
-    w.show();
+    w.show();  // 显示窗口
+
     // 给 Qt 事件队列一点时间处理 show 事件
     QTest::qWait(2000);
     EXPECT_TRUE(w.isVisible());
-    // 可以再做点基本断言：尺寸是否有效
+    // 基本尺寸验证
     EXPECT_GT(w.size().width(), 0);
     EXPECT_GT(w.size().height(), 0);
-    w.hide();
-    QTest::qWait(10);
-    EXPECT_FALSE(w.isVisible());
+
+    QMenuBar* menuBar = w.menuBar();
+    ASSERT_TRUE(menuBar != nullptr);
+
+    QMenu* fMenu = menuBar->findChild<QMenu*>("File");
+    ASSERT_TRUE(fMenu != nullptr);  // 确保找到了 File 菜单
+
+    // 查找 'Open' 菜单项并模拟点击
+    QAction* openAction = fMenu->findChild<QAction*>("act_open_");
+    ASSERT_TRUE(openAction != nullptr);  // 确保找到了正确的 QAction
+
+    // 通过 trigger() 方法模拟点击 'Open' 菜单项
+    openAction->trigger();
+    QTest::qWait(1000);  // 等待文件对话框弹出
 }

@@ -44,13 +44,20 @@ void MainFrame::buildUi() {
 
 void MainFrame::buildMenubar() {
     QMenu* fMenu = menuBar()->addMenu("File");
-    act_open_ = new QAction("Open");
+    fMenu->setObjectName("File");
+    act_open_ = new QAction("Open", fMenu);
+    act_open_->setObjectName("act_open_");
 
     QMenu* oMenu = menuBar()->addMenu("Operation");
-    act_hist_ = new QAction("Histogram");
+    oMenu->setObjectName("Operation");
+    act_hist_ = new QAction("Histogram", oMenu);
+    act_hist_->setObjectName("act_hist_");
 
     fMenu->addAction(act_open_);
     oMenu->addAction(act_hist_);
+
+    qDebug() << "File menu actions count: " << fMenu->actions().count();
+    qDebug() << "Operation menu actions count: " << oMenu->actions().count();
 }
 
 void MainFrame::buildBody(QSplitter* splitter) {

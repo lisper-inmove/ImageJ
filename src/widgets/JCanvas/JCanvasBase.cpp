@@ -25,8 +25,11 @@ void JCanvas::paintEvent(QPaintEvent* event) {
         const QPointF origin = imageOrigin();
         p.setRenderHint(QPainter::SmoothPixmapTransform, true);
         p.save();
+        // 将画布起始点设置在 Frame 的某个位置(图片的原点)
         p.translate(origin);
+        // 画布与图片做一样的缩放
         p.scale(scale, scale);
+        // 在画布上展示图片(画布与图片其实是完全重合的)
         p.drawImage(0, 0, img_);
     }
     drawCrosshair(p);
@@ -53,8 +56,13 @@ void JCanvas::drawCrosshair(QPainter& p) {
 }
 
 void JCanvas::open() {
+#ifdef TEST_ENVIRONMENT  // 如果是在测试环境中
+    // 使用默认文件路径进行测试
+    const QString path = "C:/Users/Administrator/Desktop/Desktop.jpg";  // 默认路径
+#else
     const QString filter = QStringLiteral("Images (*.png *.xpm *.jpg *.jpeg);; All files (*.*)");
     const QString path = QFileDialog::getOpenFileName(this, tr("Open Image"), QString(), filter);
+#endif
     if (!path.isEmpty()) {
         QImage tmp;
         if (tmp.load(path)) {
@@ -81,6 +89,9 @@ double JCanvas::effectiveScale() {
 }
 
 QPointF JCanvas::imageOrigin() {
+    /**
+        返回图片在Frame的原点位置。也就是左上角的起始点
+    */
     if (img_.isNull() || img_.width() == 0 || img_.height() == 0) return rect().center();
     const double scale = effectiveScale();
     const double x = img_.width() * scale / 2.0;
