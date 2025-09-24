@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <QWidget>
+#include <QRubberBand>
 #include <opencv2/opencv.hpp>
 
 
@@ -18,8 +19,12 @@ private:
     double scale_{1};
     // 记录鼠标拖拽之后的偏移
     QPointF offset_{0.0, 0.0};
-    QPointF prev_pos_;
+    QPointF prevPos_;
+    QPoint startPos_;
+    QPoint endPos_;
     bool draggling_ = false;
+    bool selecting_ = false;
+    std::unique_ptr<QRubberBand> rb_;
 
 private:
     void paintEvent(QPaintEvent* event) override;
@@ -39,4 +44,6 @@ private:
     void reset();
     QPointF imageOrigin();
     QPointF clampOffsetForImage(const QPointF& desiredOffset);
+    void onSelectFinish();
+    QPointF toImageCoord(const QPoint& point);
 };

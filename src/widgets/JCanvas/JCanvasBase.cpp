@@ -91,3 +91,23 @@ void JCanvas::reset() {
     scale_ = 1.0;
     offset_ = QPointF(0.0, 0.0);
 }
+
+void JCanvas::onSelectFinish() {
+    rb_->hide();
+}
+
+QPointF JCanvas::toImageCoord(const QPoint& point) {
+    /**
+        将Frame的坐标转换成原图的坐标
+    */
+    if (img_.isNull()) {
+        return QPointF(-1, -1);
+    }
+    const double scale = effectiveScale();
+    const QPointF origin = imageOrigin() + offset_;
+    const QPointF coord = (point - origin) / scale;
+    if (coord.x() < 0 || coord.x() >= img_.width() || coord.y() < 0 || coord.y() >= img_.height()) {
+        return QPointF(-1, -1);
+    }
+    return coord;
+}

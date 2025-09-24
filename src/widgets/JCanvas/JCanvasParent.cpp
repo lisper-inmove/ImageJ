@@ -1,7 +1,9 @@
 ﻿#include "widgets/JCanvas.h"
 #include "utils/logger.h"
+#include <memory>
 #include <QPainter>
 #include <QWheelEvent>
+#include <QRect>
 
 void JCanvas::paintEvent(QPaintEvent* event) {
     QPainter p(this);
@@ -55,27 +57,55 @@ void JCanvas::mouseMoveEvent(QMouseEvent* event) {
         event->ignore();
         return;
     }
+    QPointF pos = event->position();
     if (draggling_) {
-        QPointF pos = event->position();
-        QPointF delta = pos.toPoint() - prev_pos_;
+        QPointF delta = pos.toPoint() - prevPos_;
         QPointF wanted = delta + offset_;
         offset_ = clampOffsetForImage(wanted);
-        prev_pos_ = event->position();
+        prevPos_ = event->position();
         update();
-        QWidget::mouseMoveEvent(event);
     }
+    if (selecting_) {
+        QPointF imgPoint = toImageCoord(event->pos());
+        if (imgPoint.x() != -1) {
+            endPos_ = event->pos();
+        }
+        rb_->setGeometry(QRect(startPos_, endPos_));
+    }
+    event->accept();
+    QWidget::mouseMoveEvent(event);
 }
 
 void JCanvas::mousePressEvent(QMouseEvent* event) {
-    setCursor(Qt::ClosedHandCursor);
-    prev_pos_ = event->position();
-    draggling_ = true;
+    const bool isCtrl = event->modifiers() & Qt::ControlModifier;
+    const bool isLeft = event->button() & Qt::LeftButton;
+    prevPos_ = event->position();
+    startPos_ = event->pos();
+    endPos_ = event->pos();
+    if (isLeft) {
+        setCursor(Qt::ClosedHandCursor);
+    }
+    if (isCtrl && isLeft) {
+        selecting_ = true;
+        if (!rb_)
+            rb_ = std::make_unique<QRubberBand>(QRubberBand::Rectangle, this);
+        rb_->setGeometry(QRect(startPos_, QSize()));
+        rb_->show();
+    } else {
+        draggling_ = true;
+    }
 }
 
 void JCanvas::mouseReleaseEvent(QMouseEvent* event) {
     setCursor(Qt::CrossCursor);
-    prev_pos_ = event->position();
+    prevPos_ = event->position();
+    endPos_ = event->pos();
+    if (selecting_) {
+        onSelectFinish();
+    }
     draggling_ = false;
+    selecting_ = false;
+
 }
 
 QPointF JCanvas::clampOffsetForImage(const QPointF& desiredOffset) {
