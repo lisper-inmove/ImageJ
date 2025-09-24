@@ -86,10 +86,12 @@ QPointF JCanvas::clampOffsetForImage(const QPointF& desiredOffset) {
     QSize widgetSize = size();
     QSize imgSize = img_.size();
 
-    const double w = imgSize.width() * scale;
-    const double h = imgSize.height() * scale;
-    const double dx = std::max(0.0, (w - widgetSize.width()) / 2.0);
-    const double dy = std::max(0.0, (h - widgetSize.height()) / 2.0);
+    const double imageCenterX = (imgSize.width() * scale) / 2.0;
+    const double imageCenterY = (imgSize.height() * scale) / 2.0;
+    const double frameCenterX = widgetSize.width() / 2.0;
+    const double frameCenterY = widgetSize.height() / 2.0;
+    const double dx = std::max(0.0, (imageCenterX - frameCenterX));
+    const double dy = std::max(0.0, (imageCenterY - frameCenterY));
 
     const double ox = std::clamp(desiredOffset.x(), -dx, dx);
     // clamp(value, low, high): 把value规范到 [low, high] 以内

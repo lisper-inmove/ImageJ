@@ -16,6 +16,7 @@ private:
     cv::Mat cvImg_;
     QImage img_;
     double scale_{1};
+    // 记录鼠标拖拽之后的偏移
     QPointF offset_{0.0, 0.0};
     QPointF prev_pos_;
     bool draggling_ = false;

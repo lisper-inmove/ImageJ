@@ -74,8 +74,9 @@ double JCanvas::effectiveScale() {
 
 QPointF JCanvas::imageOrigin() {
     /**
-        返回Frame与图片的偏移
-        同时也是图片原点相对于Frame原点的位置偏移
+        Frame的坐标系是以左上角为原点
+        QPainter(画布), Image 的原点是重合的，
+        该函数计算的是 Painter(Image) 的原点在Frame坐标系中的坐标
     */
     if (img_.isNull() || img_.width() == 0 || img_.height() == 0) return rect().center();
     const double scale = effectiveScale();
