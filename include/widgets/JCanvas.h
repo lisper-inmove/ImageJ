@@ -10,6 +10,7 @@ public:
     explicit JCanvas(QWidget* parent = nullptr);
     void open();
     void setSize(QSize& size);
+    void build(QString path);
 
 private:
     QSize size_ {1080, 800};
@@ -46,4 +47,7 @@ private:
     QPointF clampOffsetForImage(const QPointF& desiredOffset);
     void onSelectFinish();
     QPointF toImageCoord(const QPoint& point);
+
+    // TODO: 放在其它地方
+    void subProcess();
 };

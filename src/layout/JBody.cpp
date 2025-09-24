@@ -9,7 +9,7 @@ JBody::~JBody() {
     delete canvas_;
 }
 
-void JBody::build() {
+void JBody::build(QString path) {
     setWindowTitle("JBody");
     setObjectName("JBody");
     setMinimumSize(width_, height_);
@@ -18,16 +18,17 @@ void JBody::build() {
     // pal.setColor(QPalette::Window, Qt::white);
     // setAutoFillBackground(true);
     // setPalette(pal);
-    buildCanvas();
+    buildCanvas(path);
 
     show();
 }
 
-void JBody::buildCanvas() {
+void JBody::buildCanvas(QString path) {
     canvas_ = new JCanvas(this);
     QSize size(width_, height_);
     canvas_->setSize(size);
     canvas_->show();
+    canvas_->build(path);
 }
 
 void JBody::open() {

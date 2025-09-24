@@ -8,8 +8,8 @@ class JBody: public QWidget {
 public:
     JBody(QWidget* parent = nullptr);
     ~JBody();
-    void build();
-    void buildCanvas();
+    void build(QString path);
+    void buildCanvas(QString path);
 
 public:
     void setWidth(quint32 v) {width_ = v;}
@@ -21,6 +21,5 @@ public:
 private:
     quint32 width_;
     quint32 height_;
-
     JCanvas* canvas_;
 };

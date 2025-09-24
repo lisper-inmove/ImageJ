@@ -12,6 +12,19 @@ JCanvas::JCanvas(QWidget* parent): QWidget(parent) {
     setAcceptDrops(true);
 }
 
+void JCanvas::build(QString path) {
+    LOG_INFO("JCanvas build: {}", path.toStdString());
+    if (!path.isEmpty()) {
+        reset();
+        QImage tmp;
+        if (tmp.load(path)) {
+            cvImg_ = cv::imread(path.toStdString());
+            img_ = std::move(tmp);
+            update();
+        }
+    }
+}
+
 void JCanvas::setSize(QSize& size) {
     size_.setWidth(size.width());
     size_.setHeight(size.height());
@@ -53,8 +66,6 @@ void JCanvas::open() {
             cvImg_ = cv::imread(path.toStdString());
             img_ = std::move(tmp);
             update();
-        } else {
-
         }
     }
 }
@@ -83,7 +94,7 @@ QPointF JCanvas::imageOrigin() {
     const double x = img_.width() * scale / 2.0;
     const double y = img_.height() * scale / 2.0;
     QSize s = size();
-    LOG_INFO("ImageOrigin: {}, {}", x, y);
+    // LOG_INFO("ImageOrigin: {}, {}", x, y);
     return QPointF(s.width() / 2.0 - x, s.height() / 2.0 - y);
 }
 
@@ -94,6 +105,7 @@ void JCanvas::reset() {
 
 void JCanvas::onSelectFinish() {
     rb_->hide();
+    subProcess();
 }
 
 QPointF JCanvas::toImageCoord(const QPoint& point) {

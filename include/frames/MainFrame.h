@@ -13,12 +13,13 @@ class MainFrame : public QMainWindow {
     Q_OBJECT
 public:
     explicit MainFrame(QWidget* parent = nullptr);
+    void build(QString path);
 
 private:
-    void buildUi();
+    void buildUi(QString path);
     void connectSignals();
     void buildMenubar();
-    void buildBody(QSplitter* splitter);
+    void buildBody(QSplitter* splitter, QString path);
     void buildRightside(QSplitter* splitter);
 
 private:
@@ -27,14 +28,14 @@ private:
     JRightside* rightside_;
 
     // 打开图片
-    QAction* act_open_;
+    QAction* actOpen_;
     // 直方图
-    QAction* act_hist_;
+    QAction* actHist_;
 
     quint32 width_ = 1200;
     quint32 height_ = 800;
 
-    quint32 left_width_ = width_ * 0.8;
-    quint32 right_width_ = width_ * 0.2;
+    quint32 leftWidth_ = width_ * 0.8;
+    quint32 rightWidth_ = width_ * 0.2;
 
 };

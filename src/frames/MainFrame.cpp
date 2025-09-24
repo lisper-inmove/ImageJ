@@ -7,11 +7,15 @@
 MainFrame::MainFrame(QWidget* parent)
     : QMainWindow(parent)
 {
-    buildUi();
+
+}
+
+void MainFrame::build(QString path) {
+    buildUi(path);
     connectSignals();
 }
 
-void MainFrame::buildUi() {
+void MainFrame::buildUi(QString path) {
 
     auto* splitter = new QSplitter(Qt::Horizontal, this);
 
@@ -29,11 +33,11 @@ void MainFrame::buildUi() {
     )");
 
     QList<int> sizes;
-    sizes.append(right_width_);
-    sizes.append(left_width_);
+    sizes.append(rightWidth_);
+    sizes.append(leftWidth_);
 
     buildMenubar();
-    buildBody(splitter);
+    buildBody(splitter, path);
     buildRightside(splitter);
 
     setCentralWidget(splitter);
@@ -45,36 +49,36 @@ void MainFrame::buildUi() {
 void MainFrame::buildMenubar() {
     QMenu* fMenu = menuBar()->addMenu("File");
     fMenu->setObjectName("File");
-    act_open_ = new QAction("Open", fMenu);
-    act_open_->setObjectName("act_open_");
+    actOpen_ = new QAction("Open", fMenu);
+    actOpen_->setObjectName("act_open_");
 
     QMenu* oMenu = menuBar()->addMenu("Operation");
     oMenu->setObjectName("Operation");
-    act_hist_ = new QAction("Histogram", oMenu);
-    act_hist_->setObjectName("act_hist_");
+    actHist_ = new QAction("Histogram", oMenu);
+    actHist_->setObjectName("act_hist_");
 
-    fMenu->addAction(act_open_);
-    oMenu->addAction(act_hist_);
+    fMenu->addAction(actOpen_);
+    oMenu->addAction(actHist_);
 
     qDebug() << "File menu actions count: " << fMenu->actions().count();
     qDebug() << "Operation menu actions count: " << oMenu->actions().count();
 }
 
-void MainFrame::buildBody(QSplitter* splitter) {
+void MainFrame::buildBody(QSplitter* splitter, QString path) {
     body_ = new JBody(splitter);
-    body_->setWidth(left_width_);
+    body_->setWidth(leftWidth_);
     body_->setHeight(height_);
-    body_->build();
+    body_->build(path);
 }
 
 void MainFrame::buildRightside(QSplitter* splitter) {
     rightside_ = new JRightside(splitter);
-    rightside_->setWidth(right_width_);
+    rightside_->setWidth(rightWidth_);
     rightside_->setHeight(height_);
     rightside_->build();
 }
 
 void MainFrame::connectSignals() {
     // 选择图片
-    connect(act_open_, &QAction::triggered, body_, &JBody::open);
+    connect(actOpen_, &QAction::triggered, body_, &JBody::open);
 }
