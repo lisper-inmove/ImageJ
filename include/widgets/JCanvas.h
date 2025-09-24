@@ -15,10 +15,17 @@ private:
     QString path_;
     cv::Mat cvImg_;
     QImage img_;
-    double scale_ = 1;
+    double scale_{1};
+    QPointF offset_{0.0, 0.0};
+    QPointF prev_pos_;
+    bool draggling_ = false;
 
 private:
     void paintEvent(QPaintEvent* event) override;
+    void wheelEvent(QWheelEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
     // 中间画十字
@@ -27,5 +34,8 @@ private:
     double baseScale();
     // 实际缩放
     double effectiveScale();
+    // 新打开一张图片时，将所有参数都重置
+    void reset();
     QPointF imageOrigin();
+    QPointF clampOffsetForImage(const QPointF& desiredOffset);
 };
