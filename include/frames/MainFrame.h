@@ -3,7 +3,7 @@
 #include <QMenubar>
 #include <QSplitter>
 #include "layout/JToolbar.h"
-#include "layout/JBody.h"
+#include "widgets/JCanvas.h"
 #include "layout/JRightside.h"
 
 class ImageCanvas;
@@ -19,12 +19,12 @@ private:
     void buildUi(QString path);
     void connectSignals();
     void buildMenubar();
-    void buildBody(QSplitter* splitter, QString path);
+    void buildCanvas(QSplitter* splitter, QString path);
     void buildRightside(QSplitter* splitter);
 
 private:
     JToolbar* toolbar_;
-    JBody* body_;
+    JCanvas* canvas_;
     JRightside* rightside_;
 
     // 打开图片

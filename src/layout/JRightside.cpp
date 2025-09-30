@@ -8,6 +8,7 @@ void JRightside::build() {
     setWindowTitle("JRightside");
     setObjectName("JRightside");
     setMinimumSize(width_, height_);
+    setFixedSize(width_, height_);
 
     // QPalette pal = palette();
     // pal.setColor(QPalette::Window, Qt::white);

@@ -34,10 +34,10 @@ void MainFrame::buildUi(QString path) {
 
     QList<int> sizes;
     sizes.append(rightWidth_);
-    sizes.append(leftWidth_);
+    sizes.append(height_);
 
     buildMenubar();
-    buildBody(splitter, path);
+    buildCanvas(splitter, path);
     buildRightside(splitter);
 
     setCentralWidget(splitter);
@@ -64,11 +64,11 @@ void MainFrame::buildMenubar() {
     qDebug() << "Operation menu actions count: " << oMenu->actions().count();
 }
 
-void MainFrame::buildBody(QSplitter* splitter, QString path) {
-    body_ = new JBody(splitter);
-    body_->setWidth(leftWidth_);
-    body_->setHeight(height_);
-    body_->build(path);
+void MainFrame::buildCanvas(QSplitter* splitter, QString path) {
+    canvas_ = new JCanvas(splitter);
+    QSize s = QSize(leftWidth_, height_);
+    canvas_->setSize(s);
+    canvas_->build(path);
 }
 
 void MainFrame::buildRightside(QSplitter* splitter) {
@@ -80,5 +80,5 @@ void MainFrame::buildRightside(QSplitter* splitter) {
 
 void MainFrame::connectSignals() {
     // 选择图片
-    connect(actOpen_, &QAction::triggered, body_, &JBody::open);
+    connect(actOpen_, &QAction::triggered, canvas_, &JCanvas::open);
 }

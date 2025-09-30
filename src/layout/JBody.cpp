@@ -26,6 +26,7 @@ void JBody::build(QString path) {
 void JBody::buildCanvas(QString path) {
     canvas_ = new JCanvas(this);
     QSize size(width_, height_);
+    canvas_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     canvas_->setSize(size);
     canvas_->show();
     canvas_->build(path);
@@ -35,3 +36,9 @@ void JBody::open() {
     LOG_DEBUG("Menu Open is clicked...");
     canvas_->open();
 }
+
+void JBody::resizeEvent(QResizeEvent* event) {
+    QSize nSize = event->size();
+    QSize oSize = event->oldSize();
+}
+

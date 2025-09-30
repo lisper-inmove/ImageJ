@@ -26,9 +26,9 @@ void JCanvas::build(QString path) {
 }
 
 void JCanvas::setSize(QSize& size) {
-    size_.setWidth(size.width());
-    size_.setHeight(size.height());
-    setMinimumSize(size_);
+    jcSize_.setWidth(size.width());
+    jcSize_.setHeight(size.height());
+    setMinimumSize(jcSize_);
 }
 
 void JCanvas::drawCrosshair(QPainter& p) {

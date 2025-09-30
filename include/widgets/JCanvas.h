@@ -13,7 +13,7 @@ public:
     void build(QString path);
 
 private:
-    QSize size_ {1080, 800};
+    QSize jcSize_ {1080, 800};
     QString path_;
     cv::Mat cvImg_;
     QImage img_;
@@ -33,6 +33,7 @@ private:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void resizeEvent(QResizeEvent*) override;
 
 private:
     // 中间画十字

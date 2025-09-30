@@ -108,6 +108,10 @@ void JCanvas::mouseReleaseEvent(QMouseEvent* event) {
 
 }
 
+void JCanvas::resizeEvent(QResizeEvent* event) {
+    LOG_INFO("Canvas Resize......");
+}
+
 QPointF JCanvas::clampOffsetForImage(const QPointF& desiredOffset) {
     /**
         图片中心与视窗的中心的偏移。用图片的中心减去视窗的中心

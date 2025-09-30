@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-#include <QWidget>
+#include <QWidget>=
+#include <QResizeEvent>
 #include "widgets/JCanvas.h"
 
 class JBody: public QWidget {
@@ -22,4 +23,7 @@ private:
     quint32 width_;
     quint32 height_;
     JCanvas* canvas_;
+
+private:
+    void resizeEvent(QResizeEvent*) override;
 };
