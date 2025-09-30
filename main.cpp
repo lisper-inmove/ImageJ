@@ -1,5 +1,6 @@
 ﻿#include "frames/MainFrame.h"
 #include "utils/logger.h"
+#include "utils/config.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -7,8 +8,9 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
+    JConfig& config = JConfig::getInstance();
     setSpdlog();
+    QApplication a(argc, argv);
     QStringList arguments = QCoreApplication::arguments();
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();
@@ -21,7 +23,6 @@ int main(int argc, char *argv[])
     }
 
     LOG_INFO("ImageJ Version 0.0.4 started...");
-    // QString path = "C:\\Users\\Administrator\\Desktop\\Desktop.jpg";
     QString path = "";
     if (arguments.size() > 1) {
         LOG_INFO("Got image: {}", arguments[1].toStdString());

@@ -26,6 +26,7 @@ target_link_libraries(${TEST_NAME} PRIVATE ${GTEST_LIBS})
 target_include_directories(${TEST_NAME} PRIVATE "${GTEST_ROOT}/googletest/include")
 
 target_link_libraries(${TEST_NAME} PRIVATE "${SPD_ROOT}/spdlogd.lib")
+target_link_libraries(${TEST_NAME} PRIVATE "${YAML_ROOT}/yaml-cppd.lib")
 target_link_libraries(${TEST_NAME} PRIVATE ${OPENCV_LIBS})
 target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt6::Test)
 
@@ -36,4 +37,3 @@ install(TARGETS ${TEST_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 qt_finalize_executable(${TEST_NAME})
-

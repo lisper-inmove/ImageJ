@@ -105,7 +105,7 @@ void JCanvas::reset() {
 
 void JCanvas::onSelectFinish() {
     rb_->hide();
-    subProcess();
+    // subProcess();
 }
 
 QPointF JCanvas::toImageCoord(const QPoint& point) {
