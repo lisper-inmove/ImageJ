@@ -4,7 +4,7 @@ qt_add_executable(${PROJECT_NAME}
     ${PROJECT_SOURCES}
     ${PROJECT_FORMS}
     ${PROJECT_RESOURCES}
-    main.cpp
+    src/main.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

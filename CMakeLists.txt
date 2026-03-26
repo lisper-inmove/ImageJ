@@ -1,17 +1,18 @@
 cmake_minimum_required(VERSION 3.16)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_PREFIX_PATH "/home/inmove/nvme1/.Qt/6.11.0/gcc_64")
+
 project(ImageJ VERSION 0.1 LANGUAGES CXX)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
-
-include(config/common.cmake)
+include(config/qtconfig.cmake)
 include(config/main.cmake)
 
 if(WIN32)
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    include(config/windows/debug.cmake)
-elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    include(config/windows/release.cmake)
-  endif()
+  include(config/windows/windows.cmake)
+endif()
+
+if(LINUX)
+  include(config/linux/linux.cmake)
 endif()

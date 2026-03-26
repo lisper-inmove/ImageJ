@@ -1,0 +1,5 @@
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  include(config/windows/debug.cmake)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+  include(config/windows/release.cmake)
+endif()
