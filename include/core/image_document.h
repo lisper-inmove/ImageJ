@@ -1,7 +1,8 @@
-#ifndef IMAGE_DOCUMENT_H_
-#define IMAGE_DOCUMENT_H_
+#ifndef IMAGEJ_CORE_IMAGE_DOCUMENT_H_
+#define IMAGEJ_CORE_IMAGE_DOCUMENT_H_
 
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <string>
@@ -23,14 +24,20 @@ class ImageDocument {
 
   // Core interface
   ImageDocument();
-  ~ImageDocument();
+  virtual ~ImageDocument();
 
-  const ImageData& image_data() const;
-  bool is_valid() const;
-  bool is_modified() const;
-  void set_modified(bool modified);
+  // Copy and move operations (Rule of Five)
+  ImageDocument(const ImageDocument&);
+  ImageDocument& operator=(const ImageDocument&);
+  ImageDocument(ImageDocument&&) noexcept;
+  ImageDocument& operator=(ImageDocument&&) noexcept;
 
-  const Metadata& metadata() const;
+  const ImageData& image_data() const noexcept;
+  bool is_valid() const noexcept;
+  bool is_modified() const noexcept;
+  void set_modified(bool modified) noexcept;
+
+  const Metadata& metadata() const noexcept;
   void set_metadata(const Metadata& metadata);
 
   bool create_new(int width, int height, ImageData::PixelFormat format);
@@ -41,9 +48,9 @@ class ImageDocument {
   void set_image_data(const ImageData& image_data);
   void clear();
 
-  bool has_file_path() const;
-  const std::string& file_path() const;
-  const std::string& file_name() const;
+  bool has_file_path() const noexcept;
+  const std::string& file_path() const noexcept;
+  const std::string& file_name() const noexcept;
 
   // Change notification support
   using DocumentChangedCallback = std::function<void(ImageDocument*)>;
@@ -62,4 +69,4 @@ class ImageDocument {
   std::vector<DocumentChangedCallback> change_listeners_;
 };
 
-#endif  // IMAGE_DOCUMENT_H_
+#endif  // IMAGEJ_CORE_IMAGE_DOCUMENT_H_

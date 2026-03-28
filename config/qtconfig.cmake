@@ -17,12 +17,16 @@ file(GLOB_RECURSE PROJECT_HEADERS
      CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
      "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/core/*.h"
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/widgets/*.h"
 )
 
 file(GLOB_RECURSE PROJECT_SOURCES
      CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cc"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/widgets/*.cc"
 )
 
 file(GLOB_RECURSE PROJECT_FORMS
