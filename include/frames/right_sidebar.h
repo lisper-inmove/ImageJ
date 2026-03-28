@@ -1,10 +1,21 @@
-#ifndef RIGHT_SIDEBAR_H_
-#define RIGHT_SIDEBAR_H_
+#ifndef IMAGEJ_FRAMES_RIGHT_SIDEBAR_H_
+#define IMAGEJ_FRAMES_RIGHT_SIDEBAR_H_
 
-class RightSidebar
-{
+#include <QWidget>
+
+class QLabel;
+class QVBoxLayout;
+
+class RightSidebar : public QWidget {
+    Q_OBJECT
 public:
-    RightSidebar();
+    explicit RightSidebar(QWidget* parent = nullptr);
+
+private:
+    void buildUi();
+
+    QLabel* placeholder_label_;
+    QVBoxLayout* main_layout_;
 };
 
-#endif // RIGHT_SIDEBAR_H_
+#endif  // IMAGEJ_FRAMES_RIGHT_SIDEBAR_H_
