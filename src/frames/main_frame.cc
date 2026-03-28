@@ -1,4 +1,4 @@
-﻿#include "frames/MainFrame.h"
+﻿#include "frames/main_frame.h"
 
 #include <QSplitter>
 #include <QHBoxLayout>

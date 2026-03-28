@@ -4,7 +4,7 @@
 #include <QTest>
 #include <QTimer>
 
-#include "frames/MainFrame.h"
+#include "frames/main_frame.h"
 
 TEST(UiSmoke, MainFrameShowsAndHides) {
     MainFrame w;
