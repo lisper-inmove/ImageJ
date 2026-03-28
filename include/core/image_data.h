@@ -1,6 +1,7 @@
-#ifndef IMAGE_DATA_H_
-#define IMAGE_DATA_H_
+#ifndef IMAGEJ_CORE_IMAGE_DATA_H_
+#define IMAGEJ_CORE_IMAGE_DATA_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -16,20 +17,27 @@ class ImageData {
 
   // Construction and destruction
   ImageData();
-  ImageData(int width, int height, PixelFormat format);
+  explicit ImageData(int width, int height, PixelFormat format);
   ~ImageData();
 
+  // Copy and move operations (Rule of Five)
+  ImageData(const ImageData&);
+  ImageData& operator=(const ImageData&);
+  ImageData(ImageData&&);
+  ImageData& operator=(ImageData&&);
+
   // Basic information
-  int width() const;
-  int height() const;
-  PixelFormat format() const;
-  int channels() const;
-  size_t byte_count() const;
-  bool is_valid() const;
+  int width() const noexcept;
+  int height() const noexcept;
+  PixelFormat format() const noexcept;
+  int channels() const noexcept;
+  size_t byte_count() const noexcept;
+  bool is_valid() const noexcept;
 
   // Pixel data access
-  const uint8_t* data() const;
-  uint8_t* data();
+  const uint8_t* data() const noexcept;
+  uint8_t* data() noexcept;
+  const uint8_t* pixel(int x, int y) const;
   uint8_t* pixel(int x, int y);
 
   // Image operations
@@ -48,4 +56,4 @@ class ImageData {
   std::vector<uint8_t> data_;
 };
 
-#endif  // IMAGE_DATA_H_
+#endif  // IMAGEJ_CORE_IMAGE_DATA_H_
