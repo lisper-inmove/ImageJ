@@ -2,7 +2,7 @@
 #include <QWidget>
 
 class ImageCanvas;
-class RightSidebar;  // 新增前置声明
+class RightSidebar;
 
 class MainFrame : public QWidget {
     Q_OBJECT

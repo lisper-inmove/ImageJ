@@ -10,4 +10,3 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   include(config/linux/release.cmake)
 endif()
-

@@ -9,6 +9,11 @@ project(ImageJ VERSION 0.1 LANGUAGES CXX)
 include(config/qtconfig.cmake)
 include(config/main.cmake)
 
+target_sources(ImageJ
+  PRIVATE
+    include/frames/RightSidebar.h include/frames/RightSidebar.cpp
+)
+
 if(WIN32)
   include(config/windows/windows.cmake)
 endif()
