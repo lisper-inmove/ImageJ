@@ -1,3 +1,3 @@
-#include "RightSidebar.h"
+#include "frames/RightSidebar.h"
 
 RightSidebar::RightSidebar() {}
