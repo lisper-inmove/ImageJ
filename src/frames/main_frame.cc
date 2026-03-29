@@ -40,6 +40,32 @@ void MainFrame::closeEvent(QCloseEvent* event) {
 }
 
 void MainFrame::buildUi() {
+    // 创建分割器
+    splitter_ = new QSplitter(Qt::Horizontal, this);
+
+    // 创建左侧图像画布
+    image_canvas_ = new ImageCanvas(splitter_);
+
+    // 创建右侧边栏
+    right_sidebar_ = new RightSidebar(splitter_);
+
+    // 添加到分割器
+    splitter_->addWidget(image_canvas_);
+    splitter_->addWidget(right_sidebar_);
+
+    // 设置初始分割比例 (80% : 20%)
+    QList<int> sizes;
+    sizes << 800 << 200;  // 基于默认1024宽度计算
+    splitter_->setSizes(sizes);
+
+    // 设置主布局
+    QHBoxLayout* main_layout = new QHBoxLayout(this);
+    main_layout->addWidget(splitter_);
+    setLayout(main_layout);
+
+    // 设置窗口标题和默认大小
+    setWindowTitle("ImageJ");
+    resize(1024, 768);
 }
 
 void MainFrame::connectSignals() {
