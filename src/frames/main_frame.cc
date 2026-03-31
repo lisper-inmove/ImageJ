@@ -4,6 +4,9 @@
 #include <QHBoxLayout>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QDebug>
+#include <QLabel>
+#include <stdexcept>
 
 #include "widgets/image_canvas.h"
 #include "frames/right_sidebar.h"
@@ -17,6 +20,9 @@ MainFrame::MainFrame(QWidget* parent)
     // 创建配置对象
     settings_ = new QSettings("ImageJ", "ImageJ", this);
 
+    // 验证配置
+    validateSettings();
+
     loadWindowSettings();
     buildUi();
     connectSignals();
@@ -27,19 +33,25 @@ MainFrame::~MainFrame() {
 }
 
 void MainFrame::loadWindowSettings() {
-    // 加载窗口几何信息
-    QByteArray geometry_data = settings_->value("Window/geometry").toByteArray();
-    if (!geometry_data.isEmpty()) {
-        restoreGeometry(geometry_data);
-    } else {
-        // 首次运行或配置损坏，使用默认值
-        resize(1024, 768);
-        move(100, 100);  // 默认位置
-    }
+    try {
+        // 加载窗口几何信息
+        QByteArray geometry_data = settings_->value("Window/geometry").toByteArray();
+        if (!geometry_data.isEmpty()) {
+            if (!restoreGeometry(geometry_data)) {
+                qWarning() << "Failed to restore window geometry, using defaults";
+                setDefaultGeometry();
+            }
+        } else {
+            setDefaultGeometry();
+        }
 
-    // 加载窗口状态（最大化/正常） - 使用Qt::WindowState枚举值
-    int window_state = settings_->value("Window/windowState", Qt::WindowNoState).toInt();
-    setWindowState(static_cast<Qt::WindowState>(window_state));
+        // 加载窗口状态（最大化/正常） - 使用Qt::WindowState枚举值
+        int window_state = settings_->value("Window/windowState", Qt::WindowNoState).toInt();
+        setWindowState(static_cast<Qt::WindowState>(window_state));
+    } catch (const std::exception& e) {
+        qCritical() << "Error loading window settings:" << e.what();
+        setDefaultGeometry();
+    }
 
     // splitter状态在buildUi之后加载
 }
@@ -66,39 +78,72 @@ void MainFrame::closeEvent(QCloseEvent* event) {
 }
 
 void MainFrame::buildUi() {
-    // 创建分割器
-    splitter_ = new QSplitter(Qt::Horizontal, this);
+    try {
+        // 创建分割器
+        splitter_ = new QSplitter(Qt::Horizontal, this);
+        if (!splitter_) {
+            throw std::runtime_error("Failed to create QSplitter");
+        }
 
-    // 创建左侧图像画布
-    image_canvas_ = new ImageCanvas(splitter_);
+        // 创建左侧图像画布
+        image_canvas_ = new ImageCanvas(splitter_);
+        if (!image_canvas_) {
+            throw std::runtime_error("Failed to create ImageCanvas");
+        }
 
-    // 创建右侧边栏
-    right_sidebar_ = new RightSidebar(splitter_);
+        // 创建右侧边栏
+        right_sidebar_ = new RightSidebar(splitter_);
+        if (!right_sidebar_) {
+            throw std::runtime_error("Failed to create RightSidebar");
+        }
 
-    // 添加到分割器
-    splitter_->addWidget(image_canvas_);
-    splitter_->addWidget(right_sidebar_);
+        // 添加到分割器
+        splitter_->addWidget(image_canvas_);
+        splitter_->addWidget(right_sidebar_);
 
-    // 设置初始分割比例 (80% : 20%)
-    QList<int> sizes;
-    sizes << 800 << 200;  // 基于默认1024宽度计算
-    splitter_->setSizes(sizes);
+        // 设置初始分割比例 (80% : 20%)
+        QList<int> sizes;
+        sizes << 800 << 200;  // 基于默认1024宽度计算
+        splitter_->setSizes(sizes);
 
-    // 尝试加载保存的splitter状态
-    QByteArray splitter_state = settings_->value("Layout/splitterSizes").toByteArray();
-    if (!splitter_state.isEmpty()) {
-        splitter_->restoreState(splitter_state);
+        // 尝试加载保存的splitter状态
+        QByteArray splitter_state = settings_->value("Layout/splitterSizes").toByteArray();
+        if (!splitter_state.isEmpty()) {
+            splitter_->restoreState(splitter_state);
+        }
+
+        // 设置主布局
+        QHBoxLayout* main_layout = new QHBoxLayout(this);
+        main_layout->addWidget(splitter_);
+        setLayout(main_layout);
+
+        // 设置窗口标题和默认大小
+        setWindowTitle("ImageJ");
+        resize(1024, 768);
+    } catch (const std::exception& e) {
+        qCritical() << "Failed to build UI:" << e.what();
+        // 创建最简单的后备布局
+        QLabel* error_label = new QLabel("Failed to initialize application UI", this);
+        QHBoxLayout* layout = new QHBoxLayout(this);
+        layout->addWidget(error_label);
+        setLayout(layout);
     }
-
-    // 设置主布局
-    QHBoxLayout* main_layout = new QHBoxLayout(this);
-    main_layout->addWidget(splitter_);
-    setLayout(main_layout);
-
-    // 设置窗口标题和默认大小
-    setWindowTitle("ImageJ");
-    resize(1024, 768);
 }
 
 void MainFrame::connectSignals() {
+}
+
+void MainFrame::setDefaultGeometry() {
+    resize(1024, 768);
+    move(100, 100);
+}
+
+bool MainFrame::validateSettings() {
+    // 检查必要的配置键是否存在且有效
+    if (!settings_->contains("Window/geometry") &&
+        !settings_->contains("Layout/splitterSizes")) {
+        qDebug() << "No saved settings found, using defaults";
+        return false;
+    }
+    return true;
 }

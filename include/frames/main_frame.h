@@ -21,6 +21,8 @@ private:
     void connectSignals();
     void loadWindowSettings();
     void saveWindowSettings();
+    void setDefaultGeometry();
+    bool validateSettings();
 
     QSplitter* splitter_;
     ImageCanvas* image_canvas_;
