@@ -13,36 +13,36 @@ file(GLOB_RECURSE TEST_SRC_LIST CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/te
 ##################################
 # For Qt
 qt_add_executable(${TEST_NAME}
-    MANUAL_FINALIZATION
-    ${PROJECT_HEADERS}
-    ${PROJECT_SOURCES}
-    ${PROJECT_FORMS}
-    ${PROJECT_RESOURCES}
-    ${TEST_SRC_LIST}
-    tests/test.cpp
+  MANUAL_FINALIZATION
+  ${PROJECT_HEADERS}
+  ${PROJECT_SOURCES}
+  ${PROJECT_FORMS}
+  ${PROJECT_RESOURCES}
+  ${TEST_SRC_LIST}
+  tests/test.cpp
 )
 
 target_link_libraries(${TEST_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
 include(GNUInstallDirs)
 install(TARGETS ${TEST_NAME}
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  BUNDLE DESTINATION .
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 qt_finalize_executable(${TEST_NAME})
 
 target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 # ========== 链接库 ==========
-target_link_libraries(${TEST_NAME} 
-    PRIVATE
-    gtest_main      # GoogleTest 主函数
-    gtest           # GoogleTest 核心库
-    ${OpenCV_LIBS}  # OpenCV 库
-    Qt6::Core 
-    Qt6::Widgets
-    Qt6::Test
+target_link_libraries(${TEST_NAME}
+  PRIVATE
+  gtest_main      # GoogleTest 主函数
+  gtest           # GoogleTest 核心库
+  ${OpenCV_LIBS}  # OpenCV 库
+  Qt6::Core
+  Qt6::Widgets
+  Qt6::Test
 )
 
 # ========== 关键：添加测试到 CTest ==========

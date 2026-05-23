@@ -14,28 +14,28 @@ message(STATUS "Qt6 Widgets: ${Qt6Widgets_FOUND}")
 message(STATUS "Qt6 Test: ${Qt6Test_FOUND}")
 
 file(GLOB_RECURSE PROJECT_HEADERS
-     CONFIGURE_DEPENDS
-     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
-     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
-     "${CMAKE_CURRENT_SOURCE_DIR}/include/core/*.h"
-     "${CMAKE_CURRENT_SOURCE_DIR}/include/widgets/*.h"
+  CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/core/*.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/widgets/*.h"
 )
 
 file(GLOB_RECURSE PROJECT_SOURCES
-     CONFIGURE_DEPENDS
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cc"
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/widgets/*.cc"
+  CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/widgets/*.cc"
 )
 
 file(GLOB_RECURSE PROJECT_FORMS
-     CONFIGURE_DEPENDS
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/uis/*.ui"
+  CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/uis/*.ui"
 )
 file(GLOB_RECURSE PROJECT_RESOURCES
-     CONFIGURE_DEPENDS
-     "${CMAKE_CURRENT_SOURCE_DIR}/src/qrcs/*.qrc"
+  CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/qrcs/*.qrc"
 )
 
 qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})

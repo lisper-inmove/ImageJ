@@ -6,20 +6,20 @@ set_target_properties(imagej_core PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON)
 
 # Main executable
 qt_add_executable(${PROJECT_NAME}
-    MANUAL_FINALIZATION
-    ${PROJECT_HEADERS}
-    ${PROJECT_FORMS}
-    ${PROJECT_RESOURCES}
-    src/main.cpp
+  MANUAL_FINALIZATION
+  ${PROJECT_HEADERS}
+  ${PROJECT_FORMS}
+  ${PROJECT_RESOURCES}
+  src/main.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets imagej_core)
 
 include(GNUInstallDirs)
 install(TARGETS ${PROJECT_NAME}
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  BUNDLE DESTINATION .
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 qt_finalize_executable(${PROJECT_NAME})
 
@@ -29,10 +29,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 enable_testing()
 
 file(GLOB_RECURSE TEST_SOURCES
-     CONFIGURE_DEPENDS
-     "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cc"
-     "${CMAKE_CURRENT_SOURCE_DIR}/tests/core/*.cc"
-     "${CMAKE_CURRENT_SOURCE_DIR}/tests/widgets/*.cc"
+  CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/core/*.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/widgets/*.cc"
 )
 
 if(Qt6Test_FOUND)
