@@ -1,5 +1,6 @@
 ﻿#include "frames/main_frame.h"
 
+#include <QApplication>
 #include <QCloseEvent>
 #include <QDebug>
 #include <QHBoxLayout>
@@ -8,6 +9,8 @@
 #include <QMenuBar>
 #include <QSettings>
 #include <QSplitter>
+#include <QStyle>
+#include <QToolBar>
 #include <QVBoxLayout>
 #include <stdexcept>
 
@@ -16,7 +19,8 @@
 
 MainFrame::MainFrame(QWidget *parent)
     : QWidget(parent), splitter_(nullptr), image_canvas_(nullptr),
-      right_sidebar_(nullptr), settings_(nullptr), menu_bar_(nullptr) {
+      right_sidebar_(nullptr), settings_(nullptr), menu_bar_(nullptr),
+      tool_bar_(nullptr) {
   // 创建配置对象
   settings_ = new QSettings("ImageJ", "ImageJ", this);
 
@@ -84,6 +88,9 @@ void MainFrame::buildUi() {
     // 创建菜单栏
     setupMenuBar();
 
+    // 创建工具栏
+    setupToolBar();
+
     // 创建分割器
     splitter_ = new QSplitter(Qt::Horizontal, this);
     if (!splitter_) {
@@ -118,10 +125,15 @@ void MainFrame::buildUi() {
       splitter_->restoreState(splitter_state);
     }
 
-    // 设置主布局（菜单栏在顶部，分割器在下方）
+    // 设置主布局（菜单栏→工具栏→分割器）
     QVBoxLayout *main_layout = new QVBoxLayout(this);
+    main_layout->setContentsMargins(0, 0, 0, 0);
+    main_layout->setSpacing(0);
     if (menu_bar_) {
       main_layout->addWidget(menu_bar_);
+    }
+    if (tool_bar_) {
+      main_layout->addWidget(tool_bar_);
     }
     main_layout->addWidget(splitter_);
     setLayout(main_layout);
@@ -197,6 +209,34 @@ void MainFrame::setupMenuBar() {
   QMenu *help_menu = menu_bar_->addMenu("帮助");
 
   QAction *about_action = help_menu->addAction("关于");
+}
+
+void MainFrame::setupToolBar() {
+  tool_bar_ = new QToolBar(this);
+  tool_bar_->setMovable(false);
+  QStyle *style = QApplication::style();
+
+  QAction *open_action = tool_bar_->addAction(
+      style->standardIcon(QStyle::SP_DialogOpenButton), "打开");
+  open_action->setToolTip("打开图像 (Ctrl+O)");
+
+  QAction *save_action = tool_bar_->addAction(
+      style->standardIcon(QStyle::SP_DialogSaveButton), "保存");
+  save_action->setToolTip("保存图像 (Ctrl+S)");
+
+  tool_bar_->addSeparator();
+
+  QAction *fit_action = tool_bar_->addAction(
+      style->standardIcon(QStyle::SP_ComputerIcon), "适应窗口");
+  fit_action->setToolTip("适应窗口 (Ctrl+0)");
+
+  QAction *zoom_in_action = tool_bar_->addAction(
+      style->standardIcon(QStyle::SP_FileIcon), "放大");
+  zoom_in_action->setToolTip("放大 (Ctrl++)");
+
+  QAction *zoom_out_action = tool_bar_->addAction(
+      style->standardIcon(QStyle::SP_DirIcon), "缩小");
+  zoom_out_action->setToolTip("缩小 (Ctrl+-)");
 }
 
 void MainFrame::connectSignals() {}

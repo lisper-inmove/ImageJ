@@ -6,8 +6,10 @@
 #include <QMenuBar>
 #include <QSettings>
 #include <QSplitter>
+#include <QStyle>
 #include <QTest>
 #include <QTimer>
+#include <QToolBar>
 
 #include "frames/main_frame.h"
 #include "widgets/image_canvas.h"
@@ -409,5 +411,91 @@ TEST_F(MenuBarTest, KeyboardShortcuts) {
         EXPECT_EQ(action->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_0));
       }
     }
+  }
+}
+
+// === Toolbar tests ===
+
+class ToolBarTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    static int argc = 1;
+    static char* argv[] = {const_cast<char*>("test")};
+    if (!QApplication::instance()) {
+      app_ = std::make_unique<QApplication>(argc, argv);
+    }
+  }
+
+  std::unique_ptr<QApplication> app_;
+};
+
+TEST_F(ToolBarTest, ToolBarExists) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QToolBar* tool_bar = frame.findChild<QToolBar*>();
+  EXPECT_NE(tool_bar, nullptr);
+}
+
+TEST_F(ToolBarTest, ToolBarHasFiveActions) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QToolBar* tool_bar = frame.findChild<QToolBar*>();
+  ASSERT_NE(tool_bar, nullptr);
+
+  QList<QAction*> actions = tool_bar->actions();
+  EXPECT_GE(actions.size(), 5);
+}
+
+TEST_F(ToolBarTest, ToolBarActionTexts) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QToolBar* tool_bar = frame.findChild<QToolBar*>();
+  ASSERT_NE(tool_bar, nullptr);
+
+  QStringList action_texts;
+  for (QAction* action : tool_bar->actions()) {
+    action_texts << action->text();
+  }
+
+  EXPECT_TRUE(action_texts.contains("打开"));
+  EXPECT_TRUE(action_texts.contains("保存"));
+  EXPECT_TRUE(action_texts.contains("适应窗口"));
+  EXPECT_TRUE(action_texts.contains("放大"));
+  EXPECT_TRUE(action_texts.contains("缩小"));
+}
+
+TEST_F(ToolBarTest, ToolBarActionsHaveToolTips) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QToolBar* tool_bar = frame.findChild<QToolBar*>();
+  ASSERT_NE(tool_bar, nullptr);
+
+  for (QAction* action : tool_bar->actions()) {
+    if (action->isSeparator()) continue;
+    EXPECT_FALSE(action->toolTip().isEmpty())
+        << "Action '" << action->text().toStdString() << "' has no tooltip";
+  }
+}
+
+TEST_F(ToolBarTest, ToolBarActionsHaveIcon) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QToolBar* tool_bar = frame.findChild<QToolBar*>();
+  ASSERT_NE(tool_bar, nullptr);
+
+  for (QAction* action : tool_bar->actions()) {
+    if (action->isSeparator()) continue;
+    EXPECT_FALSE(action->icon().isNull())
+        << "Action '" << action->text().toStdString() << "' has no icon";
   }
 }
