@@ -2,3 +2,5 @@ build
 Testing
 .vs
 .qtcreator
+.worktrees
+.claude

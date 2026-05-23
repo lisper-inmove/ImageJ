@@ -63,6 +63,13 @@ class ImageCanvas : public QWidget {
 
  public slots:
   void on_document_modified();
+
+ private:
+  ImageDocument* document_;
+  double zoom_factor_;
+  QPoint view_offset_;
+  BackgroundStyle background_style_;
+  QColor background_color_;
 };
 
 #endif  // IMAGEJ_WIDGETS_IMAGE_CANVAS_H_
