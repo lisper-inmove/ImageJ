@@ -7,6 +7,7 @@
 #include <QWheelEvent>
 
 #include "core/image_document.h"
+#include "core/image_document_adapter.h"
 
 ImageCanvas::ImageCanvas(QWidget *parent)
     : QWidget(parent),
@@ -101,6 +102,7 @@ void ImageCanvas::paintEvent(QPaintEvent *event) {
   QPainter painter(this);
   QRect rect = event->rect();
 
+  // Draw background
   switch (background_style_) {
     case BackgroundStyle::kCheckerboard: {
       const int kSquareSize = 16;
@@ -128,6 +130,19 @@ void ImageCanvas::paintEvent(QPaintEvent *event) {
       painter.setCompositionMode(QPainter::CompositionMode_Source);
       painter.fillRect(rect, Qt::transparent);
       break;
+  }
+
+  // Draw document image
+  if (document_ && document_->is_valid()) {
+    ImageDocumentAdapter adapter(document_);
+    QImage image = adapter.to_qimage();
+    if (!image.isNull()) {
+      painter.save();
+      painter.translate(view_offset_);
+      painter.scale(zoom_factor_, zoom_factor_);
+      painter.drawImage(0, 0, image);
+      painter.restore();
+    }
   }
 }
 

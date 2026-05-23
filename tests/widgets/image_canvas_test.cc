@@ -7,6 +7,7 @@
 
 #include "widgets/image_canvas.h"
 #include "core/image_document.h"
+#include "core/image_document_adapter.h"
 
 class ImageCanvasTest : public ::testing::Test {
  protected:
@@ -407,6 +408,101 @@ TEST_F(ImageCanvasTest, MouseEventsOnResizedCanvas) {
   QTest::qWait(50);
 
   EXPECT_TRUE(clicked);
+}
+
+// === Image rendering tests ===
+
+TEST_F(ImageCanvasTest, PaintEventWithDocumentNoCrash) {
+  ImageCanvas canvas;
+  canvas.resize(200, 200);
+  canvas.show();
+  QTest::qWait(50);
+
+  ImageDocument doc;
+  doc.image_data().create(32, 32, ImageData::PixelFormat::kRGB24);
+  canvas.set_document(&doc);
+  QTest::qWait(50);
+
+  canvas.repaint();
+  QTest::qWait(50);
+  SUCCEED();
+}
+
+TEST_F(ImageCanvasTest, PaintEventWithImageData) {
+  ImageCanvas canvas;
+  canvas.resize(128, 128);
+  canvas.show();
+  QTest::qWait(50);
+
+  ImageDocument doc;
+  ImageDocumentAdapter adapter(&doc);
+
+  QImage src(16, 16, QImage::Format_RGB888);
+  src.fill(Qt::red);
+  adapter.update_from_qimage(src);
+
+  canvas.set_document(&doc);
+  QTest::qWait(50);
+
+  canvas.repaint();
+  QTest::qWait(50);
+  SUCCEED();
+}
+
+TEST_F(ImageCanvasTest, PaintEventWithZoomAndImage) {
+  ImageCanvas canvas;
+  canvas.resize(200, 200);
+  canvas.show();
+  QTest::qWait(50);
+
+  ImageDocument doc;
+  ImageDocumentAdapter adapter(&doc);
+
+  QImage src(8, 8, QImage::Format_RGB888);
+  src.fill(Qt::blue);
+  adapter.update_from_qimage(src);
+
+  canvas.set_document(&doc);
+  canvas.set_zoom_factor(4.0);
+  QTest::qWait(50);
+
+  canvas.repaint();
+  QTest::qWait(50);
+  SUCCEED();
+}
+
+TEST_F(ImageCanvasTest, PaintEventWithOffsetAndImage) {
+  ImageCanvas canvas;
+  canvas.resize(200, 200);
+  canvas.show();
+  QTest::qWait(50);
+
+  ImageDocument doc;
+  ImageDocumentAdapter adapter(&doc);
+
+  QImage src(32, 32, QImage::Format_RGB888);
+  src.fill(Qt::green);
+  adapter.update_from_qimage(src);
+
+  canvas.set_document(&doc);
+  canvas.set_view_offset(QPoint(50, 50));
+  QTest::qWait(50);
+
+  canvas.repaint();
+  QTest::qWait(50);
+  SUCCEED();
+}
+
+TEST_F(ImageCanvasTest, PaintEventNullDocument) {
+  ImageCanvas canvas;
+  canvas.resize(100, 100);
+  canvas.show();
+  QTest::qWait(50);
+
+  // Paint without document — should not crash
+  canvas.repaint();
+  QTest::qWait(50);
+  SUCCEED();
 }
 
 // === Constructor tests ===
