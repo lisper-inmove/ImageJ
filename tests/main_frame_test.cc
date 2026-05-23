@@ -10,6 +10,8 @@
 #include <QTest>
 #include <QTimer>
 #include <QToolBar>
+#include <QLabel>
+#include <QStatusBar>
 
 #include "frames/main_frame.h"
 #include "widgets/image_canvas.h"
@@ -498,4 +500,85 @@ TEST_F(ToolBarTest, ToolBarActionsHaveIcon) {
     EXPECT_FALSE(action->icon().isNull())
         << "Action '" << action->text().toStdString() << "' has no icon";
   }
+}
+
+// === Status bar tests ===
+
+class StatusBarTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    static int argc = 1;
+    static char* argv[] = {const_cast<char*>("test")};
+    if (!QApplication::instance()) {
+      app_ = std::make_unique<QApplication>(argc, argv);
+    }
+  }
+
+  std::unique_ptr<QApplication> app_;
+};
+
+TEST_F(StatusBarTest, StatusBarExists) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QStatusBar* status_bar = frame.findChild<QStatusBar*>();
+  EXPECT_NE(status_bar, nullptr);
+}
+
+TEST_F(StatusBarTest, DefaultMessageIsReady) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QStatusBar* status_bar = frame.findChild<QStatusBar*>();
+  ASSERT_NE(status_bar, nullptr);
+
+  // "就绪" is a normal widget (QLabel), not a temporary message
+  bool found = false;
+  for (QLabel* label : status_bar->findChildren<QLabel*>()) {
+    if (label->text() == "就绪") {
+      found = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found);
+}
+
+TEST_F(StatusBarTest, HasPermanentImageInfoLabel) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QStatusBar* status_bar = frame.findChild<QStatusBar*>();
+  ASSERT_NE(status_bar, nullptr);
+
+  bool found = false;
+  for (QLabel* label : status_bar->findChildren<QLabel*>()) {
+    if (label->text() == "图像信息") {
+      found = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found);
+}
+
+TEST_F(StatusBarTest, ShowTemporaryMessage) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QStatusBar* status_bar = frame.findChild<QStatusBar*>();
+  ASSERT_NE(status_bar, nullptr);
+
+  status_bar->showMessage("测试消息", 5000);
+  QTest::qWait(50);
+
+  EXPECT_EQ(status_bar->currentMessage().toStdString(), "测试消息");
+
+  status_bar->clearMessage();
+  QTest::qWait(50);
+
+  // After clearing, currentMessage is empty; left-side "就绪" QLabel persists
+  EXPECT_TRUE(status_bar->currentMessage().isEmpty());
 }

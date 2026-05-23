@@ -9,6 +9,7 @@
 #include <QMenuBar>
 #include <QSettings>
 #include <QSplitter>
+#include <QStatusBar>
 #include <QStyle>
 #include <QToolBar>
 #include <QVBoxLayout>
@@ -20,7 +21,8 @@
 MainFrame::MainFrame(QWidget *parent)
     : QWidget(parent), splitter_(nullptr), image_canvas_(nullptr),
       right_sidebar_(nullptr), settings_(nullptr), menu_bar_(nullptr),
-      tool_bar_(nullptr) {
+      tool_bar_(nullptr),
+      status_bar_(nullptr) {
   // 创建配置对象
   settings_ = new QSettings("ImageJ", "ImageJ", this);
 
@@ -91,6 +93,9 @@ void MainFrame::buildUi() {
     // 创建工具栏
     setupToolBar();
 
+    // 创建状态栏
+    setupStatusBar();
+
     // 创建分割器
     splitter_ = new QSplitter(Qt::Horizontal, this);
     if (!splitter_) {
@@ -125,7 +130,7 @@ void MainFrame::buildUi() {
       splitter_->restoreState(splitter_state);
     }
 
-    // 设置主布局（菜单栏→工具栏→分割器）
+    // 设置主布局（菜单栏→工具栏→分割器→状态栏）
     QVBoxLayout *main_layout = new QVBoxLayout(this);
     main_layout->setContentsMargins(0, 0, 0, 0);
     main_layout->setSpacing(0);
@@ -136,6 +141,9 @@ void MainFrame::buildUi() {
       main_layout->addWidget(tool_bar_);
     }
     main_layout->addWidget(splitter_);
+    if (status_bar_) {
+      main_layout->addWidget(status_bar_);
+    }
     setLayout(main_layout);
 
     // 设置窗口标题和默认大小
@@ -237,6 +245,17 @@ void MainFrame::setupToolBar() {
   QAction *zoom_out_action = tool_bar_->addAction(
       style->standardIcon(QStyle::SP_DirIcon), "缩小");
   zoom_out_action->setToolTip("缩小 (Ctrl+-)");
+}
+
+void MainFrame::setupStatusBar() {
+  status_bar_ = new QStatusBar(this);
+  status_bar_->setSizeGripEnabled(true);
+
+  // 左侧默认消息（使用普通 widget，不受 showMessage/clearMessage 影响）
+  status_bar_->addWidget(new QLabel("就绪", status_bar_));
+
+  // 右侧永久标签
+  status_bar_->addPermanentWidget(new QLabel("图像信息", status_bar_));
 }
 
 void MainFrame::connectSignals() {}
