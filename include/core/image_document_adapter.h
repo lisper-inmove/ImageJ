@@ -32,6 +32,8 @@ class ImageDocumentAdapter {
 
  private:
   ImageDocument* document_ = nullptr;
+
+  static int calculate_bytes_per_line(const ImageData &data);
 };
 
 #endif  // IMAGEJ_CORE_IMAGE_DOCUMENT_ADAPTER_H_

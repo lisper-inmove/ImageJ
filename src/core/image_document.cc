@@ -11,7 +11,12 @@ ImageDocument &ImageDocument::operator=(ImageDocument &&) noexcept = default;
 const ImageData &ImageDocument::image_data() const noexcept {
   return image_data_;
 }
-bool ImageDocument::is_valid() const noexcept { return false; }
+ImageData &ImageDocument::image_data() noexcept {
+  return image_data_;
+}
+bool ImageDocument::is_valid() const noexcept {
+  return image_data_.is_valid();
+}
 bool ImageDocument::is_modified() const noexcept { return is_modified_; }
 void ImageDocument::set_modified(bool modified) noexcept {
   is_modified_ = modified;

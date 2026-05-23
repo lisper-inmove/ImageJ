@@ -33,6 +33,7 @@ class ImageDocument {
   ImageDocument& operator=(ImageDocument&&) noexcept;
 
   const ImageData& image_data() const noexcept;
+  ImageData& image_data() noexcept;
   bool is_valid() const noexcept;
   bool is_modified() const noexcept;
   void set_modified(bool modified) noexcept;
