@@ -4,8 +4,11 @@
 #include <QDebug>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QMenu>
+#include <QMenuBar>
 #include <QSettings>
 #include <QSplitter>
+#include <QVBoxLayout>
 #include <stdexcept>
 
 #include "frames/right_sidebar.h"
@@ -13,7 +16,7 @@
 
 MainFrame::MainFrame(QWidget *parent)
     : QWidget(parent), splitter_(nullptr), image_canvas_(nullptr),
-      right_sidebar_(nullptr), settings_(nullptr) {
+      right_sidebar_(nullptr), settings_(nullptr), menu_bar_(nullptr) {
   // 创建配置对象
   settings_ = new QSettings("ImageJ", "ImageJ", this);
 
@@ -78,6 +81,9 @@ void MainFrame::closeEvent(QCloseEvent *event) {
 
 void MainFrame::buildUi() {
   try {
+    // 创建菜单栏
+    setupMenuBar();
+
     // 创建分割器
     splitter_ = new QSplitter(Qt::Horizontal, this);
     if (!splitter_) {
@@ -112,8 +118,11 @@ void MainFrame::buildUi() {
       splitter_->restoreState(splitter_state);
     }
 
-    // 设置主布局
-    QHBoxLayout *main_layout = new QHBoxLayout(this);
+    // 设置主布局（菜单栏在顶部，分割器在下方）
+    QVBoxLayout *main_layout = new QVBoxLayout(this);
+    if (menu_bar_) {
+      main_layout->addWidget(menu_bar_);
+    }
     main_layout->addWidget(splitter_);
     setLayout(main_layout);
 
@@ -125,10 +134,69 @@ void MainFrame::buildUi() {
     // 创建最简单的后备布局
     QLabel *error_label =
         new QLabel("Failed to initialize application UI", this);
-    QHBoxLayout *layout = new QHBoxLayout(this);
+    QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(error_label);
     setLayout(layout);
   }
+}
+
+void MainFrame::setupMenuBar() {
+  menu_bar_ = new QMenuBar(this);
+
+  // === File menu ===
+  QMenu *file_menu = menu_bar_->addMenu("文件");
+
+  QAction *new_action = file_menu->addAction("新建");
+  new_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
+
+  QAction *open_action = file_menu->addAction("打开");
+  open_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_O));
+
+  file_menu->addSeparator();
+
+  QAction *save_action = file_menu->addAction("保存");
+  save_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_S));
+
+  QAction *save_as_action = file_menu->addAction("另存为");
+  save_as_action->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S));
+
+  file_menu->addSeparator();
+
+  QAction *exit_action = file_menu->addAction("退出");
+  exit_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Q));
+
+  // === Edit menu ===
+  QMenu *edit_menu = menu_bar_->addMenu("编辑");
+
+  QAction *undo_action = edit_menu->addAction("撤销");
+  undo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
+  undo_action->setEnabled(false);
+
+  QAction *redo_action = edit_menu->addAction("重做");
+  redo_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Y));
+  redo_action->setEnabled(false);
+
+  // === View menu ===
+  QMenu *view_menu = menu_bar_->addMenu("视图");
+
+  QAction *fit_action = view_menu->addAction("适应窗口");
+  fit_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_0));
+
+  QAction *actual_size_action = view_menu->addAction("实际大小");
+  actual_size_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_1));
+
+  view_menu->addSeparator();
+
+  QAction *zoom_in_action = view_menu->addAction("放大");
+  zoom_in_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Plus));
+
+  QAction *zoom_out_action = view_menu->addAction("缩小");
+  zoom_out_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Minus));
+
+  // === Help menu ===
+  QMenu *help_menu = menu_bar_->addMenu("帮助");
+
+  QAction *about_action = help_menu->addAction("关于");
 }
 
 void MainFrame::connectSignals() {}

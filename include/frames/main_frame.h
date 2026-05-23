@@ -4,6 +4,7 @@
 class QSplitter;
 class QSettings;
 class QCloseEvent;
+class QMenuBar;
 class ImageCanvas;
 class RightSidebar;
 
@@ -18,6 +19,7 @@ protected:
 
 private:
     void buildUi();
+    void setupMenuBar();
     void connectSignals();
     void loadWindowSettings();
     void saveWindowSettings();
@@ -28,4 +30,5 @@ private:
     ImageCanvas* image_canvas_;
     RightSidebar* right_sidebar_;
     QSettings* settings_;
+    QMenuBar* menu_bar_;
 };
