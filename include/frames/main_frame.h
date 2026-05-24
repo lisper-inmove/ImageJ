@@ -25,6 +25,7 @@ private:
     void setupToolBar();
     void setupStatusBar();
     void connectSignals();
+    void openImage();
     void loadWindowSettings();
     void saveWindowSettings();
     void setDefaultGeometry();

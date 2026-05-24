@@ -15,6 +15,10 @@
 #include <QVBoxLayout>
 #include <stdexcept>
 
+#include <QAction>
+#include <QFileDialog>
+
+#include "core/image_document.h"
 #include "frames/right_sidebar.h"
 #include "widgets/image_canvas.h"
 
@@ -258,7 +262,54 @@ void MainFrame::setupStatusBar() {
   status_bar_->addPermanentWidget(new QLabel("图像信息", status_bar_));
 }
 
-void MainFrame::connectSignals() {}
+void MainFrame::connectSignals() {
+  // Connect all "打开" actions (menu + toolbar) to openImage()
+  QList<QAction *> actions = findChildren<QAction *>();
+  for (QAction *action : actions) {
+    if (action->text() == "打开") {
+      QObject::connect(action, &QAction::triggered,
+                       this, &MainFrame::openImage);
+    }
+  }
+}
+
+void MainFrame::openImage() {
+  QString file_path = QFileDialog::getOpenFileName(
+      this, "打开图像", QString(),
+      "Images (*.png *.jpg *.jpeg *.bmp *.tiff *.webp);;All Files (*)");
+
+  if (file_path.isEmpty()) {
+    return;
+  }
+
+  ImageDocument *doc = new ImageDocument();
+  if (!doc->load_from_file(file_path.toStdString())) {
+    delete doc;
+    if (status_bar_) {
+      status_bar_->showMessage("加载失败: " + file_path, 5000);
+    }
+    return;
+  }
+
+  // Pass ownership to image canvas (old document will be deleted if owned)
+  ImageDocument *old_doc = image_canvas_->document();
+  image_canvas_->set_document(doc);
+  delete old_doc;
+
+  // Update window title
+  setWindowTitle(QString::fromStdString(doc->file_name()) +
+                 " - ImageJ");
+
+  // Update status bar
+  if (status_bar_) {
+    const auto &data = doc->image_data();
+    QString info = QString("已加载: %1x%2 %3")
+                       .arg(data.width())
+                       .arg(data.height())
+                       .arg(QString::fromStdString(doc->metadata().file_format));
+    status_bar_->showMessage(info, 5000);
+  }
+}
 
 void MainFrame::setDefaultGeometry() {
   resize(1024, 768);
