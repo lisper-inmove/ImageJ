@@ -506,6 +506,18 @@ TEST_F(ImageCanvasTest, PaintEventNullDocument) {
   SUCCEED();
 }
 
+TEST_F(ImageCanvasTest, SetDocumentResetsViewOffset) {
+  ImageCanvas canvas;
+  canvas.set_view_offset(QPoint(50, 100));
+  canvas.set_zoom_factor(2.0);
+
+  ImageDocument doc;
+  doc.image_data().create(32, 32, ImageData::PixelFormat::kRGB24);
+  canvas.set_document(&doc);
+
+  EXPECT_EQ(canvas.view_offset(), QPoint(0, 0));
+}
+
 // === Constructor tests ===
 
 TEST_F(ImageCanvasTest, Constructor) {

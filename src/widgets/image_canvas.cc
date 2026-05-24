@@ -27,6 +27,7 @@ ImageCanvas::~ImageCanvas() = default;
 
 void ImageCanvas::set_document(ImageDocument *document) {
   document_ = document;
+  view_offset_ = QPoint(0, 0);
   emit document_changed(document_);
   update();
 }
