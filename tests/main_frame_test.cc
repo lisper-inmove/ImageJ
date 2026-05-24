@@ -2,6 +2,8 @@
 #include <QAction>
 #include <QApplication>
 #include <QDir>
+#include <QMenu>
+#include <QMenuBar>
 #include <QSettings>
 #include <QSplitter>
 #include <QStyle>
@@ -211,6 +213,207 @@ TEST(SettingsPersistenceTest, MainFrameSettings) {
 
     // 验证配置已保存（实际测试需要mock QSettings）
     // 这里主要测试接口可用性
+}
+
+// === Menu bar tests ===
+
+class MenuBarTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    static int argc = 1;
+    static char* argv[] = {const_cast<char*>("test")};
+    if (!QApplication::instance()) {
+      app_ = std::make_unique<QApplication>(argc, argv);
+    }
+  }
+
+  std::unique_ptr<QApplication> app_;
+};
+
+TEST_F(MenuBarTest, MenuBarExists) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QMenuBar* menu_bar = frame.findChild<QMenuBar*>();
+  EXPECT_NE(menu_bar, nullptr);
+}
+
+TEST_F(MenuBarTest, HasFourMenus) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QMenuBar* menu_bar = frame.findChild<QMenuBar*>();
+  ASSERT_NE(menu_bar, nullptr);
+
+  QList<QMenu*> menus = menu_bar->findChildren<QMenu*>(QString(), Qt::FindDirectChildrenOnly);
+  EXPECT_GE(menus.size(), 4);
+
+  QStringList menu_names;
+  for (QMenu* menu : menus) {
+    menu_names << menu->title();
+  }
+  EXPECT_TRUE(menu_names.contains("文件"));
+  EXPECT_TRUE(menu_names.contains("编辑"));
+  EXPECT_TRUE(menu_names.contains("视图"));
+  EXPECT_TRUE(menu_names.contains("帮助"));
+}
+
+TEST_F(MenuBarTest, FileMenuActions) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QMenuBar* menu_bar = frame.findChild<QMenuBar*>();
+  ASSERT_NE(menu_bar, nullptr);
+
+  QMenu* file_menu = nullptr;
+  for (QMenu* menu : menu_bar->findChildren<QMenu*>(QString(), Qt::FindDirectChildrenOnly)) {
+    if (menu->title() == "文件") {
+      file_menu = menu;
+      break;
+    }
+  }
+  ASSERT_NE(file_menu, nullptr);
+
+  QList<QAction*> actions = file_menu->actions();
+  EXPECT_GE(actions.size(), 5);
+
+  QStringList action_texts;
+  for (QAction* action : actions) {
+    if (!action->isSeparator()) {
+      action_texts << action->text();
+    }
+  }
+
+  EXPECT_TRUE(action_texts.contains("新建"));
+  EXPECT_TRUE(action_texts.contains("打开"));
+  EXPECT_TRUE(action_texts.contains("保存"));
+  EXPECT_TRUE(action_texts.contains("另存为"));
+  EXPECT_TRUE(action_texts.contains("退出"));
+}
+
+TEST_F(MenuBarTest, EditMenuActionsDisabled) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QMenuBar* menu_bar = frame.findChild<QMenuBar*>();
+  ASSERT_NE(menu_bar, nullptr);
+
+  QMenu* edit_menu = nullptr;
+  for (QMenu* menu : menu_bar->findChildren<QMenu*>(QString(), Qt::FindDirectChildrenOnly)) {
+    if (menu->title() == "编辑") {
+      edit_menu = menu;
+      break;
+    }
+  }
+  ASSERT_NE(edit_menu, nullptr);
+
+  QList<QAction*> actions = edit_menu->actions();
+  EXPECT_EQ(actions.size(), 2);
+
+  QAction* undo_action = nullptr;
+  QAction* redo_action = nullptr;
+  for (QAction* action : actions) {
+    if (action->text() == "撤销") undo_action = action;
+    if (action->text() == "重做") redo_action = action;
+  }
+
+  ASSERT_NE(undo_action, nullptr);
+  ASSERT_NE(redo_action, nullptr);
+  EXPECT_FALSE(undo_action->isEnabled());
+  EXPECT_FALSE(redo_action->isEnabled());
+}
+
+TEST_F(MenuBarTest, ViewMenuActions) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QMenuBar* menu_bar = frame.findChild<QMenuBar*>();
+  ASSERT_NE(menu_bar, nullptr);
+
+  QMenu* view_menu = nullptr;
+  for (QMenu* menu : menu_bar->findChildren<QMenu*>(QString(), Qt::FindDirectChildrenOnly)) {
+    if (menu->title() == "视图") {
+      view_menu = menu;
+      break;
+    }
+  }
+  ASSERT_NE(view_menu, nullptr);
+
+  QList<QAction*> actions = view_menu->actions();
+  QStringList action_texts;
+  for (QAction* action : actions) {
+    if (!action->isSeparator()) {
+      action_texts << action->text();
+    }
+  }
+
+  EXPECT_TRUE(action_texts.contains("适应窗口"));
+  EXPECT_TRUE(action_texts.contains("实际大小"));
+  EXPECT_TRUE(action_texts.contains("放大"));
+  EXPECT_TRUE(action_texts.contains("缩小"));
+}
+
+TEST_F(MenuBarTest, HelpMenuAbout) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QMenuBar* menu_bar = frame.findChild<QMenuBar*>();
+  ASSERT_NE(menu_bar, nullptr);
+
+  QMenu* help_menu = nullptr;
+  for (QMenu* menu : menu_bar->findChildren<QMenu*>(QString(), Qt::FindDirectChildrenOnly)) {
+    if (menu->title() == "帮助") {
+      help_menu = menu;
+      break;
+    }
+  }
+  ASSERT_NE(help_menu, nullptr);
+
+  QList<QAction*> actions = help_menu->actions();
+  EXPECT_EQ(actions.size(), 1);
+  EXPECT_EQ(actions[0]->text(), "关于");
+}
+
+TEST_F(MenuBarTest, KeyboardShortcuts) {
+  MainFrame frame;
+  frame.show();
+  QTest::qWait(50);
+
+  QMenuBar* menu_bar = frame.findChild<QMenuBar*>();
+  ASSERT_NE(menu_bar, nullptr);
+
+  // Find File > New and check shortcut
+  for (QMenu* menu : menu_bar->findChildren<QMenu*>(QString(), Qt::FindDirectChildrenOnly)) {
+    for (QAction* action : menu->actions()) {
+      if (action->text() == "新建") {
+        EXPECT_EQ(action->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_N));
+      }
+      if (action->text() == "打开") {
+        EXPECT_EQ(action->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_O));
+      }
+      if (action->text() == "保存") {
+        EXPECT_EQ(action->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_S));
+      }
+      if (action->text() == "退出") {
+        EXPECT_EQ(action->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_Q));
+      }
+      if (action->text() == "撤销") {
+        EXPECT_EQ(action->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_Z));
+      }
+      if (action->text() == "重做") {
+        EXPECT_EQ(action->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_Y));
+      }
+      if (action->text() == "适应窗口") {
+        EXPECT_EQ(action->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_0));
+      }
+    }
+  }
 }
 
 // === Toolbar tests ===
