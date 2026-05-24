@@ -198,6 +198,7 @@ void ImageCanvas::mouseMoveEvent(QMouseEvent *event) {
   if (is_selecting_) {
     QPoint current_image = canvas_to_image(event->pos());
     selection_rect_.setBottomRight(current_image);
+    emit selection_changed(selection_rect_.normalized());
     update();
   } else {
     QPoint image_pos = canvas_to_image(event->pos());
@@ -217,7 +218,7 @@ void ImageCanvas::mouseReleaseEvent(QMouseEvent *event) {
       selection_rect_ = selection_rect_.intersected(image_bounds);
     }
     if (selection_rect_.isValid()) {
-      emit selection_changed(selection_rect_);
+      emit selection_completed(selection_rect_);
     }
     update();
   }

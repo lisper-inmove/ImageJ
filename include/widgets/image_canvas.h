@@ -66,6 +66,7 @@ class ImageCanvas : public QWidget {
   void mouse_over_image(const QPoint& image_position);
   void image_clicked(const QPoint& image_position, Qt::MouseButton button);
   void selection_changed(const QRect& image_rect);
+  void selection_completed(const QRect& image_rect);
 
  public slots:
   void on_document_modified();

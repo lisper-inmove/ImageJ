@@ -240,9 +240,9 @@ void MainFrame::connectSignals() {
   connect(image_canvas_, &ImageCanvas::mouse_over_image,
           this, &MainFrame::updateStatusBarPixelInfo);
   connect(image_canvas_, &ImageCanvas::selection_changed,
-          right_sidebar_, &RightSidebar::add_selection);
-  connect(image_canvas_, &ImageCanvas::selection_changed,
           right_sidebar_, &RightSidebar::update_selection_info);
+  connect(image_canvas_, &ImageCanvas::selection_completed,
+          right_sidebar_, &RightSidebar::add_selection);
   connect(right_sidebar_, &RightSidebar::selection_restore_requested, this,
           [this](const QRect &rect) {
             image_canvas_->set_selection(rect);
