@@ -6,6 +6,9 @@
 #include <QResizeEvent>
 #include <QWheelEvent>
 
+#include <algorithm>
+#include <cmath>
+
 #include "core/image_document.h"
 #include "core/image_document_adapter.h"
 
@@ -167,6 +170,45 @@ void ImageCanvas::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void ImageCanvas::wheelEvent(QWheelEvent *event) {
+  const QPoint delta = event->angleDelta();
+
+  if (event->modifiers() & Qt::ControlModifier) {
+    // Zoom anchored to cursor pixel — use floating-point to avoid
+    // truncation loss in the intermediate canvas_to_image/image_to_canvas round-trip
+    QPointF canvas_pos = event->position();
+    double old_zoom = zoom_factor_;
+
+    QPointF image_pos(
+        (canvas_pos.x() - view_offset_.x()) / old_zoom,
+        (canvas_pos.y() - view_offset_.y()) / old_zoom);
+
+    double new_zoom = zoom_factor_;
+    if (delta.y() > 0) {
+      new_zoom = zoom_factor_ * 1.1;
+    } else {
+      new_zoom = zoom_factor_ / 1.1;
+    }
+    new_zoom = std::clamp(new_zoom, 0.01, 100.0);
+    zoom_factor_ = new_zoom;
+
+    QPointF new_canvas(
+        image_pos.x() * new_zoom + view_offset_.x(),
+        image_pos.y() * new_zoom + view_offset_.y());
+
+    view_offset_.rx() += static_cast<int>(
+        std::floor(canvas_pos.x() - new_canvas.x()));
+    view_offset_.ry() += static_cast<int>(
+        std::floor(canvas_pos.y() - new_canvas.y()));
+  } else if (event->modifiers() & Qt::ShiftModifier) {
+    // Horizontal scroll
+    int dx = delta.x() != 0 ? delta.x() : delta.y();
+    view_offset_.rx() -= dx;
+  } else {
+    // Vertical scroll
+    view_offset_.ry() -= delta.y();
+  }
+
+  update();
   QWidget::wheelEvent(event);
 }
 

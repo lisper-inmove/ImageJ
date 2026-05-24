@@ -4,6 +4,7 @@
 #include <QPainter>
 #include <QPaintEvent>
 #include <QResizeEvent>
+#include <QWheelEvent>
 
 #include "widgets/image_canvas.h"
 #include "core/image_document.h"
@@ -521,4 +522,138 @@ TEST_F(ImageCanvasTest, ShowAndHide) {
   canvas.hide();
   QTest::qWait(100);
   EXPECT_FALSE(canvas.isVisible());
+}
+
+// === Wheel event tests ===
+
+TEST_F(ImageCanvasTest, WheelEventVerticalScroll) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  QPoint initial_offset = canvas.view_offset();
+  EXPECT_EQ(initial_offset, QPoint(0, 0));
+
+  QWheelEvent event(QPointF(150, 150), QPointF(150, 150), QPoint(0, 0),
+                    QPoint(0, -120), Qt::NoButton, Qt::NoModifier,
+                    Qt::NoScrollPhase, false);
+  QApplication::sendEvent(&canvas, &event);
+  QTest::qWait(50);
+
+  // Scrolling down (negative delta) should increase view_offset.y()
+  EXPECT_GT(canvas.view_offset().y(), initial_offset.y());
+  EXPECT_EQ(canvas.view_offset().x(), initial_offset.x());
+}
+
+TEST_F(ImageCanvasTest, WheelEventHorizontalScroll) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  QWheelEvent event(QPointF(150, 150), QPointF(150, 150), QPoint(0, 0),
+                    QPoint(-120, 0), Qt::NoButton, Qt::ShiftModifier,
+                    Qt::NoScrollPhase, false);
+  QApplication::sendEvent(&canvas, &event);
+  QTest::qWait(50);
+
+  QPoint offset = canvas.view_offset();
+  EXPECT_GT(offset.x(), 0);
+  EXPECT_EQ(offset.y(), 0);
+}
+
+TEST_F(ImageCanvasTest, CtrlWheelZoomInKeepsPixelUnderCursor) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  ImageDocument doc;
+  doc.image_data().create(64, 64, ImageData::PixelFormat::kRGB24);
+  canvas.set_document(&doc);
+  canvas.set_zoom_factor(1.0);
+  canvas.set_view_offset(QPoint(0, 0));
+  QTest::qWait(50);
+
+  QPointF cursor_pos(100, 50);
+  QPoint image_before = canvas.canvas_to_image(QPoint(100, 50));
+
+  QWheelEvent event(cursor_pos, cursor_pos, QPoint(0, 0),
+                    QPoint(0, 120), Qt::NoButton, Qt::ControlModifier,
+                    Qt::NoScrollPhase, false);
+  QApplication::sendEvent(&canvas, &event);
+  QTest::qWait(50);
+
+  EXPECT_GT(canvas.zoom_factor(), 1.0);
+
+  QPoint image_after = canvas.canvas_to_image(QPoint(100, 50));
+  EXPECT_EQ(image_after, image_before);
+}
+
+TEST_F(ImageCanvasTest, CtrlWheelZoomOutKeepsPixelUnderCursor) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  ImageDocument doc;
+  doc.image_data().create(64, 64, ImageData::PixelFormat::kRGB24);
+  canvas.set_document(&doc);
+  canvas.set_zoom_factor(2.0);
+  canvas.set_view_offset(QPoint(0, 0));
+  QTest::qWait(50);
+
+  QPointF cursor_pos(100, 50);
+  QPoint image_before = canvas.canvas_to_image(QPoint(100, 50));
+
+  QWheelEvent event(cursor_pos, cursor_pos, QPoint(0, 0),
+                    QPoint(0, -120), Qt::NoButton, Qt::ControlModifier,
+                    Qt::NoScrollPhase, false);
+  QApplication::sendEvent(&canvas, &event);
+  QTest::qWait(50);
+
+  EXPECT_LT(canvas.zoom_factor(), 2.0);
+
+  QPoint image_after = canvas.canvas_to_image(QPoint(100, 50));
+  EXPECT_EQ(image_after, image_before);
+}
+
+TEST_F(ImageCanvasTest, ZoomClampedAtMinimum) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  canvas.set_zoom_factor(0.02);
+
+  QPointF cursor_pos(100, 100);
+  QWheelEvent event(cursor_pos, cursor_pos, QPoint(0, 0),
+                    QPoint(0, -120), Qt::NoButton, Qt::ControlModifier,
+                    Qt::NoScrollPhase, false);
+  QApplication::sendEvent(&canvas, &event);
+  QTest::qWait(50);
+
+  EXPECT_GE(canvas.zoom_factor(), 0.01);
+}
+
+TEST_F(ImageCanvasTest, WheelEventWithoutDocumentDoesNotCrash) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  QWheelEvent zoom_event(QPointF(100, 100), QPointF(100, 100), QPoint(0, 0),
+                         QPoint(0, 120), Qt::NoButton, Qt::ControlModifier,
+                         Qt::NoScrollPhase, false);
+  QApplication::sendEvent(&canvas, &zoom_event);
+  QTest::qWait(50);
+
+  QWheelEvent scroll_event(QPointF(100, 100), QPointF(100, 100), QPoint(0, 0),
+                           QPoint(0, -120), Qt::NoButton, Qt::NoModifier,
+                           Qt::NoScrollPhase, false);
+  QApplication::sendEvent(&canvas, &scroll_event);
+  QTest::qWait(50);
+
+  SUCCEED();
 }
