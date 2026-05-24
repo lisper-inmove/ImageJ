@@ -13,8 +13,6 @@
 
 RightSidebar::RightSidebar(QWidget *parent)
     : QWidget(parent),
-      pixel_coord_label_(nullptr),
-      pixel_value_label_(nullptr),
       tabs_(nullptr),
       info_tab_(nullptr),
       size_label_(nullptr),
@@ -33,16 +31,6 @@ RightSidebar::RightSidebar(QWidget *parent)
 void RightSidebar::buildUi() {
   main_layout_ = new QVBoxLayout(this);
   main_layout_->setContentsMargins(4, 4, 4, 4);
-
-  // --- Pixel info bar (always visible) ---
-  pixel_coord_label_ = new QLabel("像素坐标: -", this);
-  pixel_coord_label_->setStyleSheet("font-weight: bold; padding: 2px;");
-
-  pixel_value_label_ = new QLabel("像素值: -", this);
-  pixel_value_label_->setStyleSheet("padding: 2px;");
-
-  main_layout_->addWidget(pixel_coord_label_);
-  main_layout_->addWidget(pixel_value_label_);
 
   // --- Tab widget ---
   tabs_ = new QTabWidget(this);
@@ -76,10 +64,8 @@ void RightSidebar::buildUi() {
 
   // Tab 3: Selection History
   selection_list_ = new QListWidget(this);
-  selection_list_->setViewMode(QListView::IconMode);
-  selection_list_->setIconSize(QSize(64, 64));
-  selection_list_->setResizeMode(QListView::Adjust);
-  selection_list_->setMovement(QListView::Static);
+  selection_list_->setViewMode(QListView::ListMode);
+  selection_list_->setIconSize(QSize(32, 32));
   selection_list_->setSelectionMode(QAbstractItemView::SingleSelection);
   tabs_->addTab(selection_list_, "选择历史");
 
@@ -98,44 +84,6 @@ void RightSidebar::set_zoom_factor(double factor) {
   zoom_factor_ = factor;
   int percent = static_cast<int>(zoom_factor_ * 100.0);
   zoom_label_->setText(QString("%1%").arg(percent));
-}
-
-void RightSidebar::update_pixel_info(const QPoint &image_pos) {
-  pixel_coord_label_->setText(
-      QString("像素坐标: (%1, %2)").arg(image_pos.x()).arg(image_pos.y()));
-
-  if (!document_ || !document_->is_valid()) {
-    pixel_value_label_->setText("像素值: -");
-    return;
-  }
-
-  const auto &data = document_->image_data();
-  int x = image_pos.x();
-  int y = image_pos.y();
-
-  if (x < 0 || x >= data.width() || y < 0 || y >= data.height()) {
-    pixel_value_label_->setText("像素值: (图像外)");
-    return;
-  }
-
-  const uint8_t *p = data.pixel(x, y);
-  switch (data.format()) {
-    case ImageData::PixelFormat::kGray8:
-      pixel_value_label_->setText(QString("像素值: %1").arg(p[0]));
-      break;
-    case ImageData::PixelFormat::kRGB24:
-      pixel_value_label_->setText(
-          QString("R: %1  G: %2  B: %3").arg(p[0]).arg(p[1]).arg(p[2]));
-      break;
-    case ImageData::PixelFormat::kRGBA32:
-      pixel_value_label_->setText(
-          QString("R: %1  G: %2  B: %3  A: %4")
-              .arg(p[0]).arg(p[1]).arg(p[2]).arg(p[3]));
-      break;
-    default:
-      pixel_value_label_->setText("像素值: (未知格式)");
-      break;
-  }
 }
 
 void RightSidebar::add_selection(const QRect &image_rect) {

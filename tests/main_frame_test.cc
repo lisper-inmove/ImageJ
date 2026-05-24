@@ -457,7 +457,7 @@ TEST_F(StatusBarTest, DefaultMessageIsReady) {
   EXPECT_TRUE(found);
 }
 
-TEST_F(StatusBarTest, HasPermanentImageInfoLabel) {
+TEST_F(StatusBarTest, HasPixelInfoLabel) {
   MainFrame frame;
   frame.show();
   QTest::qWait(50);
@@ -467,7 +467,7 @@ TEST_F(StatusBarTest, HasPermanentImageInfoLabel) {
 
   bool found = false;
   for (QLabel* label : status_bar->findChildren<QLabel*>()) {
-    if (label->text() == "图像信息") {
+    if (label->text().startsWith("就绪")) {
       found = true;
       break;
     }

@@ -16,16 +16,11 @@ class RightSidebar : public QWidget {
 
   void set_document(ImageDocument* doc);
   void set_zoom_factor(double factor);
-  void update_pixel_info(const QPoint& image_pos);
   void add_selection(const QRect& image_rect);
 
  private:
   void buildUi();
   void updateImageInfoTab();
-
-  // Pixel info bar
-  QLabel* pixel_coord_label_;
-  QLabel* pixel_value_label_;
 
   // Tabs
   QTabWidget* tabs_;

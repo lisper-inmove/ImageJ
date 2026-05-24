@@ -23,7 +23,7 @@
 MainFrame::MainFrame(QWidget *parent)
     : QWidget(parent), splitter_(nullptr), image_canvas_(nullptr),
       right_sidebar_(nullptr), settings_(nullptr), menu_bar_(nullptr),
-      status_bar_(nullptr) {
+      status_bar_(nullptr), pixel_info_label_(nullptr) {
   // 创建配置对象
   settings_ = new QSettings("ImageJ", "ImageJ", this);
 
@@ -218,11 +218,9 @@ void MainFrame::setupStatusBar() {
   status_bar_ = new QStatusBar(this);
   status_bar_->setSizeGripEnabled(true);
 
-  // 左侧默认消息（使用普通 widget，不受 showMessage/clearMessage 影响）
-  status_bar_->addWidget(new QLabel("就绪", status_bar_));
-
-  // 右侧永久标签
-  status_bar_->addPermanentWidget(new QLabel("图像信息", status_bar_));
+  // Pixel info label: "就绪 (x,y) R: xxx G: xxx B: xxx"
+  pixel_info_label_ = new QLabel("就绪", status_bar_);
+  status_bar_->addWidget(pixel_info_label_);
 }
 
 void MainFrame::connectSignals() {
@@ -239,7 +237,7 @@ void MainFrame::connectSignals() {
   connect(image_canvas_, &ImageCanvas::document_changed,
           right_sidebar_, &RightSidebar::set_document);
   connect(image_canvas_, &ImageCanvas::mouse_over_image,
-          right_sidebar_, &RightSidebar::update_pixel_info);
+          this, &MainFrame::updateStatusBarPixelInfo);
   connect(image_canvas_, &ImageCanvas::selection_changed,
           right_sidebar_, &RightSidebar::add_selection);
   connect(image_canvas_, &ImageCanvas::view_changed, this, [this]() {
@@ -283,6 +281,44 @@ void MainFrame::openImage() {
                        .arg(QString::fromStdString(doc->metadata().file_format));
     status_bar_->showMessage(info, 5000);
   }
+}
+
+void MainFrame::updateStatusBarPixelInfo(const QPoint &image_pos) {
+  if (!pixel_info_label_) {
+    return;
+  }
+
+  ImageDocument *doc = image_canvas_->document();
+  if (!doc || !doc->is_valid()) {
+    pixel_info_label_->setText("就绪");
+    return;
+  }
+
+  const auto &data = doc->image_data();
+  int x = image_pos.x();
+  int y = image_pos.y();
+
+  QString text = QString("就绪 (%1,%2)").arg(x).arg(y);
+
+  if (x >= 0 && x < data.width() && y >= 0 && y < data.height()) {
+    const uint8_t *p = data.pixel(x, y);
+    switch (data.format()) {
+      case ImageData::PixelFormat::kGray8:
+        text += QString(" %1").arg(p[0]);
+        break;
+      case ImageData::PixelFormat::kRGB24:
+        text += QString(" R:%1 G:%2 B:%3").arg(p[0]).arg(p[1]).arg(p[2]);
+        break;
+      case ImageData::PixelFormat::kRGBA32:
+        text += QString(" R:%1 G:%2 B:%3 A:%4")
+                    .arg(p[0]).arg(p[1]).arg(p[2]).arg(p[3]);
+        break;
+      default:
+        break;
+    }
+  }
+
+  pixel_info_label_->setText(text);
 }
 
 void MainFrame::setDefaultGeometry() {

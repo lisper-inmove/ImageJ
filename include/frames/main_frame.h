@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <QWidget>
 
+class QLabel;
 class QSplitter;
 class QSettings;
 class QCloseEvent;
@@ -24,6 +25,7 @@ private:
     void setupStatusBar();
     void connectSignals();
     void openImage();
+    void updateStatusBarPixelInfo(const QPoint& image_pos);
     void loadWindowSettings();
     void saveWindowSettings();
     void setDefaultGeometry();
@@ -35,4 +37,5 @@ private:
     QSettings* settings_;
     QMenuBar* menu_bar_;
     QStatusBar* status_bar_;
+    QLabel* pixel_info_label_;
 };
