@@ -139,14 +139,14 @@ void MainFrame::buildUi() {
     main_layout->setContentsMargins(0, 0, 0, 0);
     main_layout->setSpacing(0);
     if (menu_bar_) {
-      main_layout->addWidget(menu_bar_);
+      main_layout->addWidget(menu_bar_, 0);
     }
     if (tool_bar_) {
-      main_layout->addWidget(tool_bar_);
+      main_layout->addWidget(tool_bar_, 0);
     }
-    main_layout->addWidget(splitter_);
+    main_layout->addWidget(splitter_, 1);
     if (status_bar_) {
-      main_layout->addWidget(status_bar_);
+      main_layout->addWidget(status_bar_, 0);
     }
     setLayout(main_layout);
 
