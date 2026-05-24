@@ -27,9 +27,9 @@ class ImageCanvasTest : public ::testing::Test {
 
 // === Background style tests ===
 
-TEST_F(ImageCanvasTest, DefaultBackgroundStyleIsCheckerboard) {
+TEST_F(ImageCanvasTest, DefaultBackgroundStyleIsSolidColor) {
   ImageCanvas canvas;
-  EXPECT_EQ(canvas.background_style(), ImageCanvas::BackgroundStyle::kCheckerboard);
+  EXPECT_EQ(canvas.background_style(), ImageCanvas::BackgroundStyle::kSolidColor);
 }
 
 TEST_F(ImageCanvasTest, SetBackgroundStyle) {
@@ -46,7 +46,7 @@ TEST_F(ImageCanvasTest, SetBackgroundStyle) {
 
 TEST_F(ImageCanvasTest, DefaultBackgroundColor) {
   ImageCanvas canvas;
-  EXPECT_EQ(canvas.background_color(), Qt::white);
+  EXPECT_EQ(canvas.background_color(), QColor(0x2D, 0x2D, 0x2D));
 }
 
 TEST_F(ImageCanvasTest, SetBackgroundColor) {

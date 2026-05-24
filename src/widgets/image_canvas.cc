@@ -17,8 +17,8 @@ ImageCanvas::ImageCanvas(QWidget *parent)
       document_(nullptr),
       zoom_factor_(1.0),
       view_offset_(0, 0),
-      background_style_(BackgroundStyle::kCheckerboard),
-      background_color_(Qt::white) {
+      background_style_(BackgroundStyle::kSolidColor),
+      background_color_(QColor(0x2D, 0x2D, 0x2D)) {
   setMinimumSize(100, 100);
   setMouseTracking(true);
 }
