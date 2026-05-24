@@ -234,6 +234,17 @@ void MainFrame::connectSignals() {
                        this, &MainFrame::openImage);
     }
   }
+
+  // Connect ImageCanvas signals to RightSidebar
+  connect(image_canvas_, &ImageCanvas::document_changed,
+          right_sidebar_, &RightSidebar::set_document);
+  connect(image_canvas_, &ImageCanvas::mouse_over_image,
+          right_sidebar_, &RightSidebar::update_pixel_info);
+  connect(image_canvas_, &ImageCanvas::selection_changed,
+          right_sidebar_, &RightSidebar::add_selection);
+  connect(image_canvas_, &ImageCanvas::view_changed, this, [this]() {
+    right_sidebar_->set_zoom_factor(image_canvas_->zoom_factor());
+  });
 }
 
 void MainFrame::openImage() {

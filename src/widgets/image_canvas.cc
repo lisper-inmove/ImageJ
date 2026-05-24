@@ -43,6 +43,7 @@ ImageDocument *ImageCanvas::document() const {
 void ImageCanvas::set_zoom_factor(double factor) {
   zoom_factor_ = factor;
   clampViewOffset();
+  emit view_changed();
   update();
 }
 
@@ -57,14 +58,11 @@ void ImageCanvas::fit_to_window() {
   const auto &image_data = document_->image_data();
   double scale_x = static_cast<double>(width()) / image_data.width();
   double scale_y = static_cast<double>(height()) / image_data.height();
-  zoom_factor_ = std::min(scale_x, scale_y);
-  clampViewOffset();
-  update();
+  set_zoom_factor(std::min(scale_x, scale_y));
 }
 
 void ImageCanvas::reset_zoom() {
-  zoom_factor_ = 1.0;
-  update();
+  set_zoom_factor(1.0);
 }
 
 QPoint ImageCanvas::view_offset() const {
@@ -74,6 +72,7 @@ QPoint ImageCanvas::view_offset() const {
 void ImageCanvas::set_view_offset(const QPoint &offset) {
   view_offset_ = offset;
   clampViewOffset();
+  emit view_changed();
   update();
 }
 
