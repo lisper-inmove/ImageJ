@@ -3,6 +3,7 @@
 #include <QFormLayout>
 #include <QLabel>
 #include <QListWidget>
+#include <QPushButton>
 #include <QScrollArea>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -10,6 +11,7 @@
 #include "core/image_data.h"
 #include "core/image_document.h"
 #include "core/image_document_adapter.h"
+#include "dialogs/histogram_dialog.h"
 
 RightSidebar::RightSidebar(QWidget *parent)
     : QWidget(parent),
@@ -21,6 +23,7 @@ RightSidebar::RightSidebar(QWidget *parent)
       rotation_label_(nullptr),
       selection_info_label_(nullptr),
       tools_tab_(nullptr),
+      histogram_btn_(nullptr),
       selection_list_(nullptr),
       document_(nullptr),
       zoom_factor_(1.0),
@@ -58,13 +61,16 @@ void RightSidebar::buildUi() {
 
   tabs_->addTab(info_tab_, "图片信息");
 
-  // Tab 2: Tools (placeholder)
+  // Tab 2: Tools
   tools_tab_ = new QWidget();
   QVBoxLayout *tools_layout = new QVBoxLayout(tools_tab_);
-  QLabel *tools_placeholder = new QLabel("工具列表\n\n待实现...", tools_tab_);
-  tools_placeholder->setAlignment(Qt::AlignCenter);
-  tools_layout->addWidget(tools_placeholder);
+  histogram_btn_ = new QPushButton("灰度直方图", tools_tab_);
+  tools_layout->addWidget(histogram_btn_);
+  tools_layout->addStretch();
   tabs_->addTab(tools_tab_, "工具");
+
+  connect(histogram_btn_, &QPushButton::clicked,
+          this, &RightSidebar::onHistogramButtonClicked);
 
   // Tab 3: Selection History
   selection_list_ = new QListWidget(this);
@@ -95,6 +101,7 @@ void RightSidebar::set_zoom_factor(double factor) {
 }
 
 void RightSidebar::update_selection_info(const QRect &image_rect) {
+  current_selection_ = image_rect;
   if (image_rect.isValid()) {
     selection_info_label_->setText(
         QString("(%1,%2) %3×%4")
@@ -181,4 +188,9 @@ void RightSidebar::updateImageInfoTab() {
         QString(" (%1)").arg(QString::fromStdString(document_->metadata().file_format));
   }
   type_label_->setText(format_str);
+}
+
+void RightSidebar::onHistogramButtonClicked() {
+  HistogramDialog dialog(document_, current_selection_, this);
+  dialog.exec();
 }

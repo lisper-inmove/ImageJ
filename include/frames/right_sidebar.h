@@ -5,6 +5,7 @@
 
 class QLabel;
 class QListWidgetItem;
+class QPushButton;
 class QTabWidget;
 class QListWidget;
 class QVBoxLayout;
@@ -19,6 +20,9 @@ class RightSidebar : public QWidget {
   void set_zoom_factor(double factor);
   void update_selection_info(const QRect& image_rect);
   void add_selection(const QRect& image_rect);
+
+ private slots:
+  void onHistogramButtonClicked();
 
  signals:
   void selection_restore_requested(const QRect& image_rect);
@@ -41,6 +45,7 @@ class RightSidebar : public QWidget {
 
   // Tab 2 — Tools
   QWidget* tools_tab_;
+  QPushButton* histogram_btn_;
 
   // Tab 3 — Selection History
   QListWidget* selection_list_;
@@ -49,6 +54,7 @@ class RightSidebar : public QWidget {
   ImageDocument* document_;
   double zoom_factor_;
   double rotation_;
+  QRect current_selection_;
 
   QVBoxLayout* main_layout_;
 };
