@@ -4,6 +4,7 @@
 #include <QWidget>
 
 class QLabel;
+class QListWidgetItem;
 class QTabWidget;
 class QListWidget;
 class QVBoxLayout;
@@ -16,11 +17,16 @@ class RightSidebar : public QWidget {
 
   void set_document(ImageDocument* doc);
   void set_zoom_factor(double factor);
+  void update_selection_info(const QRect& image_rect);
   void add_selection(const QRect& image_rect);
+
+ signals:
+  void selection_restore_requested(const QRect& image_rect);
 
  private:
   void buildUi();
   void updateImageInfoTab();
+  void onSelectionItemClicked(QListWidgetItem* item);
 
   // Tabs
   QTabWidget* tabs_;
@@ -31,6 +37,7 @@ class RightSidebar : public QWidget {
   QLabel* type_label_;
   QLabel* zoom_label_;
   QLabel* rotation_label_;
+  QLabel* selection_info_label_;
 
   // Tab 2 — Tools
   QWidget* tools_tab_;

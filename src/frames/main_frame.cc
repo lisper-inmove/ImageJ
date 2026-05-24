@@ -14,6 +14,7 @@
 #include <stdexcept>
 
 #include <QAction>
+#include <QCursor>
 #include <QFileDialog>
 
 #include "core/image_document.h"
@@ -240,6 +241,13 @@ void MainFrame::connectSignals() {
           this, &MainFrame::updateStatusBarPixelInfo);
   connect(image_canvas_, &ImageCanvas::selection_changed,
           right_sidebar_, &RightSidebar::add_selection);
+  connect(image_canvas_, &ImageCanvas::selection_changed,
+          right_sidebar_, &RightSidebar::update_selection_info);
+  connect(right_sidebar_, &RightSidebar::selection_restore_requested, this,
+          [this](const QRect &rect) {
+            image_canvas_->set_selection(rect);
+            right_sidebar_->update_selection_info(rect);
+          });
   connect(image_canvas_, &ImageCanvas::view_changed, this, [this]() {
     right_sidebar_->set_zoom_factor(image_canvas_->zoom_factor());
   });
@@ -271,6 +279,13 @@ void MainFrame::openImage() {
   // Update window title
   setWindowTitle(QString::fromStdString(doc->file_name()) +
                  " - ImageJ");
+
+  // Update pixel info immediately (cursor may already be over canvas)
+  QPoint canvas_pos = image_canvas_->mapFromGlobal(QCursor::pos());
+  if (image_canvas_->rect().contains(canvas_pos)) {
+    updateStatusBarPixelInfo(
+        image_canvas_->canvas_to_image(canvas_pos));
+  }
 
   // Update status bar
   if (status_bar_) {

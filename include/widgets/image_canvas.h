@@ -39,6 +39,7 @@ class ImageCanvas : public QWidget {
   QColor background_color() const;
 
   QRect selection() const;
+  void set_selection(const QRect& image_rect);
   void clear_selection();
 
   void update_display();

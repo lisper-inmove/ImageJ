@@ -229,6 +229,7 @@ void ImageCanvas::keyPressEvent(QKeyEvent *event) {
     if (is_selecting_ || selection_rect_.isValid()) {
       is_selecting_ = false;
       selection_rect_ = QRect();
+      emit selection_changed(selection_rect_);
       update();
     }
   }
@@ -276,6 +277,7 @@ void ImageCanvas::wheelEvent(QWheelEvent *event) {
     clampViewOffset();
   }
 
+  emit view_changed();
   update();
   QWidget::wheelEvent(event);
 }
@@ -316,8 +318,15 @@ QRect ImageCanvas::selection() const {
   return selection_rect_;
 }
 
+void ImageCanvas::set_selection(const QRect &image_rect) {
+  is_selecting_ = false;
+  selection_rect_ = image_rect;
+  update();
+}
+
 void ImageCanvas::clear_selection() {
   selection_rect_ = QRect();
+  emit selection_changed(selection_rect_);
   update();
 }
 

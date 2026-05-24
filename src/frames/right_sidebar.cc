@@ -19,6 +19,7 @@ RightSidebar::RightSidebar(QWidget *parent)
       type_label_(nullptr),
       zoom_label_(nullptr),
       rotation_label_(nullptr),
+      selection_info_label_(nullptr),
       tools_tab_(nullptr),
       selection_list_(nullptr),
       document_(nullptr),
@@ -46,11 +47,14 @@ void RightSidebar::buildUi() {
   type_label_->setWordWrap(true);
   zoom_label_ = new QLabel("100%", info_tab_);
   rotation_label_ = new QLabel("0°", info_tab_);
+  selection_info_label_ = new QLabel("-", info_tab_);
+  selection_info_label_->setWordWrap(true);
 
   info_layout->addRow("图片大小:", size_label_);
   info_layout->addRow("类型:", type_label_);
   info_layout->addRow("缩放比例:", zoom_label_);
   info_layout->addRow("旋转角度:", rotation_label_);
+  info_layout->addRow("选中区域:", selection_info_label_);
 
   tabs_->addTab(info_tab_, "图片信息");
 
@@ -69,6 +73,9 @@ void RightSidebar::buildUi() {
   selection_list_->setSelectionMode(QAbstractItemView::SingleSelection);
   tabs_->addTab(selection_list_, "选择历史");
 
+  connect(selection_list_, &QListWidget::itemClicked,
+          this, &RightSidebar::onSelectionItemClicked);
+
   main_layout_->addWidget(tabs_);
 
   setLayout(main_layout_);
@@ -78,12 +85,26 @@ void RightSidebar::set_document(ImageDocument *doc) {
   document_ = doc;
   updateImageInfoTab();
   selection_list_->clear();
+  selection_info_label_->setText("-");
 }
 
 void RightSidebar::set_zoom_factor(double factor) {
   zoom_factor_ = factor;
   int percent = static_cast<int>(zoom_factor_ * 100.0);
   zoom_label_->setText(QString("%1%").arg(percent));
+}
+
+void RightSidebar::update_selection_info(const QRect &image_rect) {
+  if (image_rect.isValid()) {
+    selection_info_label_->setText(
+        QString("(%1,%2) %3×%4")
+            .arg(image_rect.x())
+            .arg(image_rect.y())
+            .arg(image_rect.width())
+            .arg(image_rect.height()));
+  } else {
+    selection_info_label_->setText("-");
+  }
 }
 
 void RightSidebar::add_selection(const QRect &image_rect) {
@@ -115,7 +136,18 @@ void RightSidebar::add_selection(const QRect &image_rect) {
 
   QListWidgetItem *item = new QListWidgetItem(QIcon(QPixmap::fromImage(thumb)),
                                               label);
+  item->setData(Qt::UserRole, image_rect);
   selection_list_->insertItem(0, item);
+}
+
+void RightSidebar::onSelectionItemClicked(QListWidgetItem *item) {
+  if (!item) {
+    return;
+  }
+  QVariant data = item->data(Qt::UserRole);
+  if (data.isValid()) {
+    emit selection_restore_requested(data.toRect());
+  }
 }
 
 void RightSidebar::updateImageInfoTab() {
