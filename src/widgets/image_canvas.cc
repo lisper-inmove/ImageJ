@@ -210,7 +210,7 @@ void ImageCanvas::wheelEvent(QWheelEvent *event) {
     clampViewOffset();
   } else {
     // Vertical scroll
-    view_offset_.ry() -= delta.y();
+    view_offset_.ry() += delta.y();
     clampViewOffset();
   }
 

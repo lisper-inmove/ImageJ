@@ -616,8 +616,9 @@ TEST_F(ImageCanvasTest, WheelEventVerticalScroll) {
   QApplication::sendEvent(&canvas, &event);
   QTest::qWait(50);
 
-  // Scrolling down (negative delta) should increase view_offset.y()
-  EXPECT_GT(canvas.view_offset().y(), initial_offset.y());
+  // Scrolling inward (negative delta) scrolls image down:
+  // view_offset.y() decreases, revealing lower content
+  EXPECT_LT(canvas.view_offset().y(), initial_offset.y());
   EXPECT_EQ(canvas.view_offset().x(), initial_offset.x());
 }
 
