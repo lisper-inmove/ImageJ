@@ -1,5 +1,6 @@
 #include "widgets/image_canvas.h"
 
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
@@ -23,6 +24,7 @@ ImageCanvas::ImageCanvas(QWidget *parent)
       selection_rect_() {
   setMinimumSize(100, 100);
   setMouseTracking(true);
+  setFocusPolicy(Qt::StrongFocus);
 }
 
 ImageCanvas::~ImageCanvas() = default;
@@ -209,10 +211,29 @@ void ImageCanvas::mouseReleaseEvent(QMouseEvent *event) {
   if (event->button() == Qt::RightButton && is_selecting_) {
     is_selecting_ = false;
     selection_rect_ = selection_rect_.normalized();
-    emit selection_changed(selection_rect_);
+    // Clamp to image bounds
+    if (document_ && document_->is_valid()) {
+      const auto &image_data = document_->image_data();
+      QRect image_bounds(0, 0, image_data.width(), image_data.height());
+      selection_rect_ = selection_rect_.intersected(image_bounds);
+    }
+    if (selection_rect_.isValid()) {
+      emit selection_changed(selection_rect_);
+    }
     update();
   }
   QWidget::mouseReleaseEvent(event);
+}
+
+void ImageCanvas::keyPressEvent(QKeyEvent *event) {
+  if (event->key() == Qt::Key_Escape) {
+    if (is_selecting_ || selection_rect_.isValid()) {
+      is_selecting_ = false;
+      selection_rect_ = QRect();
+      update();
+    }
+  }
+  QWidget::keyPressEvent(event);
 }
 
 void ImageCanvas::wheelEvent(QWheelEvent *event) {

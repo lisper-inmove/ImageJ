@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <QApplication>
 #include <QTest>
+#include <QKeyEvent>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QResizeEvent>
@@ -940,4 +941,92 @@ TEST_F(ImageCanvasTest, SecondSelectionReplacesFirst) {
   QTest::qWait(50);
 
   EXPECT_EQ(canvas.selection(), QRect(100, 100, 101, 101));
+}
+
+TEST_F(ImageCanvasTest, SelectionClampedToImageBounds) {
+  ImageCanvas canvas;
+  canvas.resize(400, 400);
+  canvas.show();
+  QTest::qWait(50);
+
+  ImageDocument doc;
+  doc.image_data().create(100, 100, ImageData::PixelFormat::kRGB24);
+  canvas.set_document(&doc);
+  QTest::qWait(50);
+
+  // Drag beyond image bounds (from 50,50 to 200,200 — image is only 100x100)
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(50, 50));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(200, 200));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(200, 200));
+  QTest::qWait(50);
+
+  // Selection should be clamped to image rect (0,0 100x100)
+  EXPECT_EQ(canvas.selection(), QRect(50, 50, 50, 50));
+}
+
+TEST_F(ImageCanvasTest, EscapeClearsCompletedSelection) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  // Create a selection first
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(50, 50));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(150, 150));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(150, 150));
+  QTest::qWait(50);
+
+  EXPECT_TRUE(canvas.selection().isValid());
+
+  // Press escape
+  QKeyEvent key_event(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+  QApplication::sendEvent(&canvas, &key_event);
+  QTest::qWait(50);
+
+  EXPECT_FALSE(canvas.selection().isValid());
+}
+
+TEST_F(ImageCanvasTest, EscapeClearsSelectionDuringDrag) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  // Start a selection drag
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(50, 50));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(100, 100));
+  QTest::qWait(20);
+
+  // Press escape mid-drag
+  QKeyEvent key_event(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+  QApplication::sendEvent(&canvas, &key_event);
+  QTest::qWait(50);
+
+  EXPECT_FALSE(canvas.selection().isValid());
+
+  // Release right button — should not emit selection_changed
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(100, 100));
+  QTest::qWait(50);
+
+  EXPECT_FALSE(canvas.selection().isValid());
+}
+
+TEST_F(ImageCanvasTest, EscapeDoesNothingWithoutSelection) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  // Press escape with no selection — should not crash
+  QKeyEvent key_event(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+  QApplication::sendEvent(&canvas, &key_event);
+  QTest::qWait(50);
+
+  EXPECT_FALSE(canvas.selection().isValid());
+  SUCCEED();
 }

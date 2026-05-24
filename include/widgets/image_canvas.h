@@ -51,6 +51,7 @@ class ImageCanvas : public QWidget {
   void mouseMoveEvent(QMouseEvent* event) override;
   void mouseReleaseEvent(QMouseEvent* event) override;
   void wheelEvent(QWheelEvent* event) override;
+  void keyPressEvent(QKeyEvent* event) override;
 
   // Coordinate conversion
   QPoint image_to_canvas(const QPoint& image_point) const;
