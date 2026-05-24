@@ -38,6 +38,7 @@ ImageDocument *ImageCanvas::document() const {
 
 void ImageCanvas::set_zoom_factor(double factor) {
   zoom_factor_ = factor;
+  clampViewOffset();
   update();
 }
 
@@ -53,6 +54,7 @@ void ImageCanvas::fit_to_window() {
   double scale_x = static_cast<double>(width()) / image_data.width();
   double scale_y = static_cast<double>(height()) / image_data.height();
   zoom_factor_ = std::min(scale_x, scale_y);
+  clampViewOffset();
   update();
 }
 
@@ -67,6 +69,7 @@ QPoint ImageCanvas::view_offset() const {
 
 void ImageCanvas::set_view_offset(const QPoint &offset) {
   view_offset_ = offset;
+  clampViewOffset();
   update();
 }
 
@@ -204,9 +207,11 @@ void ImageCanvas::wheelEvent(QWheelEvent *event) {
     // Horizontal scroll
     int dx = delta.x() != 0 ? delta.x() : delta.y();
     view_offset_.rx() -= dx;
+    clampViewOffset();
   } else {
     // Vertical scroll
     view_offset_.ry() -= delta.y();
+    clampViewOffset();
   }
 
   update();
@@ -247,4 +252,27 @@ QRect ImageCanvas::canvas_to_image(const QRect &canvas_rect) const {
 
 void ImageCanvas::on_document_modified() {
   update();
+}
+
+void ImageCanvas::clampViewOffset() {
+  if (!document_ || !document_->is_valid()) {
+    return;
+  }
+  const auto &image_data = document_->image_data();
+  int scaled_w = static_cast<int>(image_data.width() * zoom_factor_);
+  int scaled_h = static_cast<int>(image_data.height() * zoom_factor_);
+
+  int max_x_offset = -(scaled_w - width());
+  int max_y_offset = -(scaled_h - height());
+
+  if (max_x_offset > 0) {
+    view_offset_.rx() = std::clamp(view_offset_.x(), 0, max_x_offset);
+  } else {
+    view_offset_.rx() = std::clamp(view_offset_.x(), max_x_offset, 0);
+  }
+  if (max_y_offset > 0) {
+    view_offset_.ry() = std::clamp(view_offset_.y(), 0, max_y_offset);
+  } else {
+    view_offset_.ry() = std::clamp(view_offset_.y(), max_y_offset, 0);
+  }
 }

@@ -70,6 +70,8 @@ class ImageCanvas : public QWidget {
   QPoint view_offset_;
   BackgroundStyle background_style_;
   QColor background_color_;
+
+  void clampViewOffset();
 };
 
 #endif  // IMAGEJ_WIDGETS_IMAGE_CANVAS_H_

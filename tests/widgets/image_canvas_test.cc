@@ -518,6 +518,69 @@ TEST_F(ImageCanvasTest, SetDocumentResetsViewOffset) {
   EXPECT_EQ(canvas.view_offset(), QPoint(0, 0));
 }
 
+// === View offset clamp tests ===
+
+TEST_F(ImageCanvasTest, ViewOffsetClampedToBounds) {
+  ImageCanvas canvas;
+  canvas.resize(200, 200);
+  canvas.show();
+  QTest::qWait(50);
+
+  ImageDocument doc;
+  doc.image_data().create(100, 100, ImageData::PixelFormat::kRGB24);
+  canvas.set_document(&doc);
+  canvas.set_zoom_factor(1.0);
+  QTest::qWait(50);
+
+  // Set view_offset to large positive — should be clamped to canvas bounds
+  canvas.set_view_offset(QPoint(999, 999));
+  EXPECT_GE(canvas.view_offset().x(), 0);
+  EXPECT_GE(canvas.view_offset().y(), 0);
+  EXPECT_LE(canvas.view_offset().x(), 100);
+  EXPECT_LE(canvas.view_offset().y(), 100);
+}
+
+TEST_F(ImageCanvasTest, ViewOffsetClampedAfterScrolling) {
+  ImageCanvas canvas;
+  canvas.resize(100, 100);
+  canvas.show();
+  QTest::qWait(50);
+
+  ImageDocument doc;
+  doc.image_data().create(200, 200, ImageData::PixelFormat::kRGB24);
+  canvas.set_document(&doc);
+  canvas.set_zoom_factor(1.0);
+  QTest::qWait(50);
+
+  // Scroll far right — image left edge should not go past canvas left edge
+  canvas.set_view_offset(QPoint(50, 50));
+  EXPECT_LE(canvas.view_offset().x(), 0);
+  EXPECT_LE(canvas.view_offset().y(), 0);
+
+  // Scroll far left — image right edge should not leave canvas
+  // Scaled image is 200x200 in 100x100 canvas
+  // offset range: [-(200-100), 0] = [-100, 0]
+  canvas.set_view_offset(QPoint(-300, -300));
+  EXPECT_GE(canvas.view_offset().x(), -100);
+  EXPECT_GE(canvas.view_offset().y(), -100);
+}
+
+TEST_F(ImageCanvasTest, ClampViewOffsetNoDocumentDoesNotCrash) {
+  ImageCanvas canvas;
+  canvas.resize(200, 200);
+  canvas.show();
+  QTest::qWait(50);
+
+  // No document — wheel event should not crash
+  QWheelEvent event(QPointF(100, 100), QPointF(100, 100), QPoint(0, 0),
+                    QPoint(0, -120), Qt::NoButton, Qt::NoModifier,
+                    Qt::NoScrollPhase, false);
+  QApplication::sendEvent(&canvas, &event);
+  QTest::qWait(50);
+
+  SUCCEED();
+}
+
 // === Constructor tests ===
 
 TEST_F(ImageCanvasTest, Constructor) {
