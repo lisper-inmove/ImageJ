@@ -10,8 +10,6 @@
 #include <QSettings>
 #include <QSplitter>
 #include <QStatusBar>
-#include <QStyle>
-#include <QToolBar>
 #include <QVBoxLayout>
 #include <stdexcept>
 
@@ -25,7 +23,6 @@
 MainFrame::MainFrame(QWidget *parent)
     : QWidget(parent), splitter_(nullptr), image_canvas_(nullptr),
       right_sidebar_(nullptr), settings_(nullptr), menu_bar_(nullptr),
-      tool_bar_(nullptr),
       status_bar_(nullptr) {
   // 创建配置对象
   settings_ = new QSettings("ImageJ", "ImageJ", this);
@@ -94,9 +91,6 @@ void MainFrame::buildUi() {
     // 创建菜单栏
     setupMenuBar();
 
-    // 创建工具栏
-    setupToolBar();
-
     // 创建状态栏
     setupStatusBar();
 
@@ -134,15 +128,12 @@ void MainFrame::buildUi() {
       splitter_->restoreState(splitter_state);
     }
 
-    // 设置主布局（菜单栏→工具栏→分割器→状态栏）
+    // 设置主布局（菜单栏→分割器→状态栏）
     QVBoxLayout *main_layout = new QVBoxLayout(this);
     main_layout->setContentsMargins(0, 0, 0, 0);
     main_layout->setSpacing(0);
     if (menu_bar_) {
       main_layout->addWidget(menu_bar_, 0);
-    }
-    if (tool_bar_) {
-      main_layout->addWidget(tool_bar_, 0);
     }
     main_layout->addWidget(splitter_, 1);
     if (status_bar_) {
@@ -223,34 +214,6 @@ void MainFrame::setupMenuBar() {
   QAction *about_action = help_menu->addAction("关于");
 }
 
-void MainFrame::setupToolBar() {
-  tool_bar_ = new QToolBar(this);
-  tool_bar_->setMovable(false);
-  QStyle *style = QApplication::style();
-
-  QAction *open_action = tool_bar_->addAction(
-      style->standardIcon(QStyle::SP_DialogOpenButton), "打开");
-  open_action->setToolTip("打开图像 (Ctrl+O)");
-
-  QAction *save_action = tool_bar_->addAction(
-      style->standardIcon(QStyle::SP_DialogSaveButton), "保存");
-  save_action->setToolTip("保存图像 (Ctrl+S)");
-
-  tool_bar_->addSeparator();
-
-  QAction *fit_action = tool_bar_->addAction(
-      style->standardIcon(QStyle::SP_ComputerIcon), "适应窗口");
-  fit_action->setToolTip("适应窗口 (Ctrl+0)");
-
-  QAction *zoom_in_action = tool_bar_->addAction(
-      style->standardIcon(QStyle::SP_FileIcon), "放大");
-  zoom_in_action->setToolTip("放大 (Ctrl++)");
-
-  QAction *zoom_out_action = tool_bar_->addAction(
-      style->standardIcon(QStyle::SP_DirIcon), "缩小");
-  zoom_out_action->setToolTip("缩小 (Ctrl+-)");
-}
-
 void MainFrame::setupStatusBar() {
   status_bar_ = new QStatusBar(this);
   status_bar_->setSizeGripEnabled(true);
@@ -263,7 +226,7 @@ void MainFrame::setupStatusBar() {
 }
 
 void MainFrame::connectSignals() {
-  // Connect all "打开" actions (menu + toolbar) to openImage()
+  // Connect all "打开" actions to openImage()
   QList<QAction *> actions = findChildren<QAction *>();
   for (QAction *action : actions) {
     if (action->text() == "打开") {
