@@ -325,22 +325,22 @@ TEST_F(ImageCanvasTest, MouseClickWithZoom) {
   EXPECT_EQ(received_pos, QPoint(50, 50));
 }
 
-TEST_F(ImageCanvasTest, RightClickEmitsCorrectButton) {
+TEST_F(ImageCanvasTest, RightClickDoesNotEmitImageClicked) {
   ImageCanvas canvas;
   canvas.resize(300, 300);
   canvas.show();
   QTest::qWait(50);
 
-  Qt::MouseButton received_button = Qt::NoButton;
+  bool clicked = false;
   QObject::connect(&canvas, &ImageCanvas::image_clicked,
                    [&](const QPoint& pos, Qt::MouseButton btn) {
-                     received_button = btn;
+                     clicked = true;
                    });
 
   QTest::mouseClick(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(50, 50));
   QTest::qWait(50);
 
-  EXPECT_EQ(received_button, Qt::RightButton);
+  EXPECT_FALSE(clicked);
 }
 
 TEST_F(ImageCanvasTest, MouseMoveEmitsSignal) {
@@ -732,4 +732,212 @@ TEST_F(ImageCanvasTest, WheelEventWithoutDocumentDoesNotCrash) {
   QTest::qWait(50);
 
   SUCCEED();
+}
+
+// === Selection tests ===
+
+TEST_F(ImageCanvasTest, DefaultSelectionIsEmpty) {
+  ImageCanvas canvas;
+  EXPECT_FALSE(canvas.selection().isValid());
+}
+
+TEST_F(ImageCanvasTest, RightClickWithoutDragSelectsPixel) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  QTest::mouseClick(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(100, 150));
+  QTest::qWait(50);
+
+  QRect sel = canvas.selection();
+  EXPECT_TRUE(sel.isValid());
+  // Right-click at (100,150) → normalized 1x1 rect
+  EXPECT_EQ(sel, QRect(100, 150, 1, 1));
+}
+
+TEST_F(ImageCanvasTest, RightClickDragCreatesSelection) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(50, 50));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(150, 100));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(150, 100));
+  QTest::qWait(50);
+
+  QRect sel = canvas.selection();
+  EXPECT_TRUE(sel.isValid());
+  EXPECT_EQ(sel, QRect(50, 50, 101, 51));
+}
+
+TEST_F(ImageCanvasTest, SelectionChangedSignalEmitted) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  QRect received_rect;
+  QObject::connect(&canvas, &ImageCanvas::selection_changed,
+                   [&](const QRect& rect) { received_rect = rect; });
+
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(10, 20));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(100, 200));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(100, 200));
+  QTest::qWait(50);
+
+  EXPECT_EQ(received_rect, QRect(10, 20, 91, 181));
+}
+
+TEST_F(ImageCanvasTest, LeftClickStillEmitsImageClicked) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  QPoint received_pos(-1, -1);
+  QObject::connect(&canvas, &ImageCanvas::image_clicked,
+                   [&](const QPoint& pos, Qt::MouseButton) {
+                     received_pos = pos;
+                   });
+
+  QTest::mouseClick(&canvas, Qt::LeftButton, Qt::NoModifier, QPoint(77, 88));
+  QTest::qWait(50);
+
+  EXPECT_EQ(received_pos, QPoint(77, 88));
+}
+
+TEST_F(ImageCanvasTest, MouseMoveDuringSelectionNoHoverSignal) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  bool hover_emitted = false;
+  QObject::connect(&canvas, &ImageCanvas::mouse_over_image,
+                   [&](const QPoint&) { hover_emitted = true; });
+
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(50, 50));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(100, 100));
+  QTest::qWait(20);
+
+  EXPECT_FALSE(hover_emitted);
+}
+
+TEST_F(ImageCanvasTest, ClearSelectionWorks) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  // Create a selection first
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(50, 50));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(100, 100));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(100, 100));
+  QTest::qWait(50);
+
+  EXPECT_TRUE(canvas.selection().isValid());
+
+  canvas.clear_selection();
+  EXPECT_FALSE(canvas.selection().isValid());
+}
+
+TEST_F(ImageCanvasTest, SelectionScalesWithZoom) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  canvas.set_zoom_factor(2.0);
+
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(100, 100));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(200, 200));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(200, 200));
+  QTest::qWait(50);
+
+  // Selection should be in image coords (half of canvas due to 2x zoom)
+  QRect sel = canvas.selection();
+  EXPECT_EQ(sel, QRect(50, 50, 51, 51));
+
+  // Change zoom — selection stays in image coords
+  canvas.set_zoom_factor(1.0);
+  EXPECT_EQ(canvas.selection(), QRect(50, 50, 51, 51));
+}
+
+TEST_F(ImageCanvasTest, SelectionMovesWithPan) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(100, 100));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(200, 200));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(200, 200));
+  QTest::qWait(50);
+
+  QRect sel = canvas.selection();
+  EXPECT_EQ(sel, QRect(100, 100, 101, 101));
+
+  // Pan — selection stays in image coords
+  canvas.set_view_offset(QPoint(50, 50));
+  EXPECT_EQ(canvas.selection(), QRect(100, 100, 101, 101));
+}
+
+TEST_F(ImageCanvasTest, PaintWithSelectionDoesNotCrash) {
+  ImageCanvas canvas;
+  canvas.resize(200, 200);
+  canvas.show();
+  QTest::qWait(50);
+
+  // Create a selection
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(50, 50));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(150, 150));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(150, 150));
+  QTest::qWait(50);
+
+  // Repaint should not crash
+  canvas.repaint();
+  QTest::qWait(50);
+  SUCCEED();
+}
+
+TEST_F(ImageCanvasTest, SecondSelectionReplacesFirst) {
+  ImageCanvas canvas;
+  canvas.resize(300, 300);
+  canvas.show();
+  QTest::qWait(50);
+
+  // First selection
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(10, 10));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(50, 50));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(50, 50));
+  QTest::qWait(50);
+
+  EXPECT_EQ(canvas.selection(), QRect(10, 10, 41, 41));
+
+  // Second selection
+  QTest::mousePress(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(100, 100));
+  QTest::qWait(20);
+  QTest::mouseMove(&canvas, QPoint(200, 200));
+  QTest::qWait(20);
+  QTest::mouseRelease(&canvas, Qt::RightButton, Qt::NoModifier, QPoint(200, 200));
+  QTest::qWait(50);
+
+  EXPECT_EQ(canvas.selection(), QRect(100, 100, 101, 101));
 }

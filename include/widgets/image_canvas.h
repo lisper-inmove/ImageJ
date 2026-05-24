@@ -38,6 +38,9 @@ class ImageCanvas : public QWidget {
   void set_background_color(const QColor& color);
   QColor background_color() const;
 
+  QRect selection() const;
+  void clear_selection();
+
   void update_display();
   void force_redraw();
 
@@ -60,6 +63,7 @@ class ImageCanvas : public QWidget {
   void view_changed();
   void mouse_over_image(const QPoint& image_position);
   void image_clicked(const QPoint& image_position, Qt::MouseButton button);
+  void selection_changed(const QRect& image_rect);
 
  public slots:
   void on_document_modified();
@@ -70,6 +74,8 @@ class ImageCanvas : public QWidget {
   QPoint view_offset_;
   BackgroundStyle background_style_;
   QColor background_color_;
+  bool is_selecting_;
+  QRect selection_rect_;  // in image coordinates
 
   void clampViewOffset();
 };

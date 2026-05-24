@@ -18,7 +18,9 @@ ImageCanvas::ImageCanvas(QWidget *parent)
       zoom_factor_(1.0),
       view_offset_(0, 0),
       background_style_(BackgroundStyle::kSolidColor),
-      background_color_(QColor(0x2D, 0x2D, 0x2D)) {
+      background_color_(QColor(0x2D, 0x2D, 0x2D)),
+      is_selecting_(false),
+      selection_rect_() {
   setMinimumSize(100, 100);
   setMouseTracking(true);
 }
@@ -151,6 +153,28 @@ void ImageCanvas::paintEvent(QPaintEvent *event) {
       painter.restore();
     }
   }
+
+  if (selection_rect_.isValid()) {
+    QRect canvas_rect = image_to_canvas(selection_rect_);
+    if (!canvas_rect.isEmpty()) {
+      painter.save();
+      QPen rect_pen(QColor(255, 0, 0));
+      rect_pen.setWidth(2);
+      painter.setPen(rect_pen);
+      painter.setBrush(Qt::NoBrush);
+      painter.drawRect(canvas_rect.adjusted(0, 0, -1, -1));
+
+      QPoint center = canvas_rect.center();
+      QPen cross_pen(QColor(255, 0, 0));
+      cross_pen.setWidth(1);
+      painter.setPen(cross_pen);
+      painter.drawLine(QPoint(canvas_rect.left(), center.y()),
+                       QPoint(canvas_rect.right() - 1, center.y()));
+      painter.drawLine(QPoint(center.x(), canvas_rect.top()),
+                       QPoint(center.x(), canvas_rect.bottom() - 1));
+      painter.restore();
+    }
+  }
 }
 
 void ImageCanvas::resizeEvent(QResizeEvent *event) {
@@ -158,18 +182,36 @@ void ImageCanvas::resizeEvent(QResizeEvent *event) {
 }
 
 void ImageCanvas::mousePressEvent(QMouseEvent *event) {
-  QPoint image_pos = canvas_to_image(event->pos());
-  emit image_clicked(image_pos, event->button());
+  if (event->button() == Qt::RightButton) {
+    is_selecting_ = true;
+    QPoint image_pos = canvas_to_image(event->pos());
+    selection_rect_ = QRect(image_pos, image_pos);
+  } else {
+    QPoint image_pos = canvas_to_image(event->pos());
+    emit image_clicked(image_pos, event->button());
+  }
   QWidget::mousePressEvent(event);
 }
 
 void ImageCanvas::mouseMoveEvent(QMouseEvent *event) {
-  QPoint image_pos = canvas_to_image(event->pos());
-  emit mouse_over_image(image_pos);
+  if (is_selecting_) {
+    QPoint current_image = canvas_to_image(event->pos());
+    selection_rect_.setBottomRight(current_image);
+    update();
+  } else {
+    QPoint image_pos = canvas_to_image(event->pos());
+    emit mouse_over_image(image_pos);
+  }
   QWidget::mouseMoveEvent(event);
 }
 
 void ImageCanvas::mouseReleaseEvent(QMouseEvent *event) {
+  if (event->button() == Qt::RightButton && is_selecting_) {
+    is_selecting_ = false;
+    selection_rect_ = selection_rect_.normalized();
+    emit selection_changed(selection_rect_);
+    update();
+  }
   QWidget::mouseReleaseEvent(event);
 }
 
@@ -248,6 +290,15 @@ QRect ImageCanvas::canvas_to_image(const QRect &canvas_rect) const {
   return QRect(top_left.x(), top_left.y(),
                bottom_right_exclusive.x() - top_left.x(),
                bottom_right_exclusive.y() - top_left.y());
+}
+
+QRect ImageCanvas::selection() const {
+  return selection_rect_;
+}
+
+void ImageCanvas::clear_selection() {
+  selection_rect_ = QRect();
+  update();
 }
 
 void ImageCanvas::on_document_modified() {
