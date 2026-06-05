@@ -16,7 +16,9 @@
 #include <QAction>
 #include <QCursor>
 #include <QFileDialog>
+#include <QFileInfo>
 
+#include "core/colorspace_converter.h"
 #include "core/image_document.h"
 #include "frames/right_sidebar.h"
 #include "widgets/image_canvas.h"
@@ -24,6 +26,7 @@
 MainFrame::MainFrame(QWidget *parent)
     : QWidget(parent), splitter_(nullptr), image_canvas_(nullptr),
       right_sidebar_(nullptr), settings_(nullptr), menu_bar_(nullptr),
+      recent_menu_(nullptr),
       status_bar_(nullptr), pixel_info_label_(nullptr) {
   // 创建配置对象
   settings_ = new QSettings("ImageJ", "ImageJ", this);
@@ -168,6 +171,11 @@ void MainFrame::setupMenuBar() {
   QAction *open_action = file_menu->addAction("打开");
   open_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_O));
 
+  // Recent files submenu
+  file_menu->addSeparator();
+  recent_menu_ = file_menu->addMenu("最近文件");
+  updateRecentFileMenu();
+
   file_menu->addSeparator();
 
   QAction *save_action = file_menu->addAction("保存");
@@ -251,6 +259,10 @@ void MainFrame::connectSignals() {
   connect(image_canvas_, &ImageCanvas::view_changed, this, [this]() {
     right_sidebar_->set_zoom_factor(image_canvas_->zoom_factor());
   });
+
+  // Color space combo (in sidebar tools tab)
+  connect(right_sidebar_, &RightSidebar::color_space_changed,
+          this, &MainFrame::onColorSpaceChanged);
 }
 
 void MainFrame::openImage() {
@@ -286,6 +298,18 @@ void MainFrame::openImage() {
     updateStatusBarPixelInfo(
         image_canvas_->canvas_to_image(canvas_pos));
   }
+
+  // Save original data for color space switching
+  original_data_.copy_from(doc->image_data());
+
+  // Enable and reset color space combo in sidebar
+  if (right_sidebar_) {
+    right_sidebar_->reset_color_space_combo();
+    right_sidebar_->enable_color_space_combo(true);
+  }
+
+  // Save to recent files
+  addRecentFilePath(file_path);
 
   // Update status bar
   if (status_bar_) {
@@ -334,6 +358,159 @@ void MainFrame::updateStatusBarPixelInfo(const QPoint &image_pos) {
   }
 
   pixel_info_label_->setText(text);
+}
+
+void MainFrame::onColorSpaceChanged(int index) {
+  ImageDocument *doc = image_canvas_->document();
+  if (!doc || !original_data_.is_valid()) {
+    return;
+  }
+
+  if (index == 0) {
+    // RGB: restore original data directly, no conversion needed
+    doc->set_image_data(original_data_);
+    image_canvas_->update();
+    return;
+  }
+
+  ColorSpace target;
+  switch (index) {
+    case 1: target = ColorSpace::kHSV;    break;
+    case 2: target = ColorSpace::kLAB;    break;
+    case 3: target = ColorSpace::kGray;   break;
+    case 4: target = ColorSpace::kBinary; break;
+    default: return;
+  }
+
+  ImageData converted = convertColorSpace(original_data_, target);
+  if (converted.is_valid()) {
+    doc->set_image_data(converted);
+    image_canvas_->update();
+  }
+}
+
+void MainFrame::addRecentFilePath(const QString& path) {
+  // Read current list from settings
+  QStringList paths;
+  int count = settings_->beginReadArray("RecentFiles");
+  for (int i = 0; i < count; ++i) {
+    settings_->setArrayIndex(i);
+    QString p = settings_->value("path").toString();
+    if (!p.isEmpty()) {
+      paths.append(p);
+    }
+  }
+  settings_->endArray();
+
+  // Deduplicate: remove existing entry with same path
+  paths.removeAll(path);
+
+  // Prepend new path, keep max 5
+  paths.prepend(path);
+  while (paths.size() > 5) {
+    paths.removeLast();
+  }
+
+  // Write back to settings
+  settings_->beginWriteArray("RecentFiles");
+  for (int i = 0; i < paths.size(); ++i) {
+    settings_->setArrayIndex(i);
+    settings_->setValue("path", paths[i]);
+  }
+  settings_->endArray();
+
+  updateRecentFileMenu();
+}
+
+void MainFrame::updateRecentFileMenu() {
+  if (!recent_menu_) {
+    return;
+  }
+  recent_menu_->clear();
+
+  int count = settings_->beginReadArray("RecentFiles");
+  if (count == 0) {
+    recent_menu_->setEnabled(false);
+    QAction* empty = recent_menu_->addAction("(空)");
+    empty->setEnabled(false);
+    settings_->endArray();
+    return;
+  }
+
+  recent_menu_->setEnabled(true);
+  for (int i = 0; i < count; ++i) {
+    settings_->setArrayIndex(i);
+    QString path = settings_->value("path").toString();
+    if (path.isEmpty()) {
+      continue;
+    }
+
+    QAction* action = recent_menu_->addAction(QFileInfo(path).fileName());
+    action->setToolTip(path);
+    action->setData(path);
+    connect(action, &QAction::triggered, this, &MainFrame::openRecentFile);
+  }
+  settings_->endArray();
+}
+
+void MainFrame::openRecentFile() {
+  QAction* action = qobject_cast<QAction*>(sender());
+  if (!action) {
+    return;
+  }
+
+  QString file_path = action->data().toString();
+  if (file_path.isEmpty() || !QFileInfo::exists(file_path)) {
+    if (status_bar_) {
+      status_bar_->showMessage("文件不存在: " + file_path, 5000);
+    }
+    return;
+  }
+
+  ImageDocument* doc = new ImageDocument();
+  if (!doc->load_from_file(file_path.toStdString())) {
+    delete doc;
+    if (status_bar_) {
+      status_bar_->showMessage("加载失败: " + file_path, 5000);
+    }
+    return;
+  }
+
+  // Pass ownership to image canvas
+  ImageDocument* old_doc = image_canvas_->document();
+  image_canvas_->set_document(doc);
+  delete old_doc;
+
+  // Update window title
+  setWindowTitle(QString::fromStdString(doc->file_name()) + " - ImageJ");
+
+  // Update pixel info immediately
+  QPoint canvas_pos = image_canvas_->mapFromGlobal(QCursor::pos());
+  if (image_canvas_->rect().contains(canvas_pos)) {
+    updateStatusBarPixelInfo(image_canvas_->canvas_to_image(canvas_pos));
+  }
+
+  // Save original data for color space switching
+  original_data_.copy_from(doc->image_data());
+
+  // Enable and reset color space combo in sidebar
+  if (right_sidebar_) {
+    right_sidebar_->reset_color_space_combo();
+    right_sidebar_->enable_color_space_combo(true);
+  }
+
+  // Update recent files (moves this path to top)
+  addRecentFilePath(file_path);
+
+  // Update status bar
+  if (status_bar_) {
+    const auto& data = doc->image_data();
+    QString info = QString("已加载: %1x%2 %3")
+                       .arg(data.width())
+                       .arg(data.height())
+                       .arg(QString::fromStdString(doc->metadata().file_format));
+    status_bar_->showMessage(info, 5000);
+  }
 }
 
 void MainFrame::setDefaultGeometry() {

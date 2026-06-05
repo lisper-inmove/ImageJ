@@ -1,5 +1,6 @@
 #include "frames/right_sidebar.h"
 
+#include <QComboBox>
 #include <QFormLayout>
 #include <QLabel>
 #include <QListWidget>
@@ -24,6 +25,7 @@ RightSidebar::RightSidebar(QWidget *parent)
       selection_info_label_(nullptr),
       tools_tab_(nullptr),
       histogram_btn_(nullptr),
+      colorspace_combo_(nullptr),
       selection_list_(nullptr),
       document_(nullptr),
       zoom_factor_(1.0),
@@ -65,12 +67,24 @@ void RightSidebar::buildUi() {
   tools_tab_ = new QWidget();
   QVBoxLayout *tools_layout = new QVBoxLayout(tools_tab_);
   histogram_btn_ = new QPushButton("灰度直方图", tools_tab_);
+
+  colorspace_combo_ = new QComboBox(tools_tab_);
+  colorspace_combo_->addItem("RGB");
+  colorspace_combo_->addItem("HSV");
+  colorspace_combo_->addItem("LAB");
+  colorspace_combo_->addItem("Gray");
+  colorspace_combo_->addItem("Binary");
+  colorspace_combo_->setEnabled(false);
+
   tools_layout->addWidget(histogram_btn_);
+  tools_layout->addWidget(colorspace_combo_);
   tools_layout->addStretch();
   tabs_->addTab(tools_tab_, "工具");
 
   connect(histogram_btn_, &QPushButton::clicked,
           this, &RightSidebar::onHistogramButtonClicked);
+  connect(colorspace_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          this, &RightSidebar::color_space_changed);
 
   // Tab 3: Selection History
   selection_list_ = new QListWidget(this);
@@ -193,4 +207,18 @@ void RightSidebar::updateImageInfoTab() {
 void RightSidebar::onHistogramButtonClicked() {
   HistogramDialog dialog(document_, current_selection_, this);
   dialog.exec();
+}
+
+void RightSidebar::enable_color_space_combo(bool enabled) {
+  if (colorspace_combo_) {
+    colorspace_combo_->setEnabled(enabled);
+  }
+}
+
+void RightSidebar::reset_color_space_combo() {
+  if (colorspace_combo_) {
+    colorspace_combo_->blockSignals(true);
+    colorspace_combo_->setCurrentIndex(0);  // RGB
+    colorspace_combo_->blockSignals(false);
+  }
 }

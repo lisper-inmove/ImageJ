@@ -1,10 +1,13 @@
 ﻿#pragma once
 #include <QWidget>
 
+#include "core/image_data.h"
+
 class QLabel;
 class QSplitter;
 class QSettings;
 class QCloseEvent;
+class QMenu;
 class QMenuBar;
 class QStatusBar;
 class ImageCanvas;
@@ -19,23 +22,31 @@ public:
 protected:
     void closeEvent(QCloseEvent* event) override;
 
+private slots:
+    void onColorSpaceChanged(int index);
+
 private:
     void buildUi();
     void setupMenuBar();
     void setupStatusBar();
     void connectSignals();
     void openImage();
+    void openRecentFile();
     void updateStatusBarPixelInfo(const QPoint& image_pos);
     void loadWindowSettings();
     void saveWindowSettings();
     void setDefaultGeometry();
     bool validateSettings();
+    void addRecentFilePath(const QString& path);
+    void updateRecentFileMenu();
 
     QSplitter* splitter_;
     ImageCanvas* image_canvas_;
     RightSidebar* right_sidebar_;
     QSettings* settings_;
     QMenuBar* menu_bar_;
+    QMenu* recent_menu_;
     QStatusBar* status_bar_;
     QLabel* pixel_info_label_;
+    ImageData original_data_;
 };

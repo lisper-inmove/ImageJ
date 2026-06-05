@@ -6,6 +6,7 @@
 class QLabel;
 class QListWidgetItem;
 class QPushButton;
+class QComboBox;
 class QTabWidget;
 class QListWidget;
 class QVBoxLayout;
@@ -20,12 +21,15 @@ class RightSidebar : public QWidget {
   void set_zoom_factor(double factor);
   void update_selection_info(const QRect& image_rect);
   void add_selection(const QRect& image_rect);
+  void enable_color_space_combo(bool enabled);
+  void reset_color_space_combo();
 
  private slots:
   void onHistogramButtonClicked();
 
  signals:
   void selection_restore_requested(const QRect& image_rect);
+  void color_space_changed(int index);
 
  private:
   void buildUi();
@@ -46,6 +50,7 @@ class RightSidebar : public QWidget {
   // Tab 2 — Tools
   QWidget* tools_tab_;
   QPushButton* histogram_btn_;
+  QComboBox* colorspace_combo_;
 
   // Tab 3 — Selection History
   QListWidget* selection_list_;
