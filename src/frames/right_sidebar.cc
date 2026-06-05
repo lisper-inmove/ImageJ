@@ -2,10 +2,13 @@
 
 #include <QComboBox>
 #include <QFormLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QSlider>
+#include <QSpinBox>
 #include <QTabWidget>
 #include <QVBoxLayout>
 
@@ -26,6 +29,8 @@ RightSidebar::RightSidebar(QWidget *parent)
       tools_tab_(nullptr),
       histogram_btn_(nullptr),
       colorspace_combo_(nullptr),
+      channel_sliders_widget_(nullptr),
+      channel_sliders_layout_(nullptr),
       selection_list_(nullptr),
       document_(nullptr),
       zoom_factor_(1.0),
@@ -78,6 +83,12 @@ void RightSidebar::buildUi() {
 
   tools_layout->addWidget(histogram_btn_);
   tools_layout->addWidget(colorspace_combo_);
+
+  channel_sliders_widget_ = new QWidget(tools_tab_);
+  channel_sliders_layout_ = new QVBoxLayout(channel_sliders_widget_);
+  channel_sliders_layout_->setContentsMargins(0, 4, 0, 0);
+  tools_layout->addWidget(channel_sliders_widget_);
+
   tools_layout->addStretch();
   tabs_->addTab(tools_tab_, "工具");
 
@@ -85,6 +96,8 @@ void RightSidebar::buildUi() {
           this, &RightSidebar::onHistogramButtonClicked);
   connect(colorspace_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
           this, &RightSidebar::color_space_changed);
+  connect(colorspace_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          this, &RightSidebar::updateChannelSliders);
 
   // Tab 3: Selection History
   selection_list_ = new QListWidget(this);
@@ -209,6 +222,103 @@ void RightSidebar::onHistogramButtonClicked() {
   dialog.exec();
 }
 
+void RightSidebar::updateChannelSliders(int colorSpaceIndex) {
+  if (!channel_sliders_layout_) {
+    return;
+  }
+
+  // Clear existing sliders
+  for (auto& cs : channel_sliders_) {
+    // Parent widget (row) owns label/slider/spinbox, deleting it cleans up all
+    QWidget* row = cs.label->parentWidget();
+    channel_sliders_layout_->removeWidget(row);
+    delete row;
+  }
+  channel_sliders_.clear();
+
+  // Define channels for each color space: {name, min, max, default}
+  struct ChannelDef {
+    QString name;
+    int min_val;
+    int max_val;
+    int default_val;
+  };
+  QVector<ChannelDef> channels;
+
+  switch (colorSpaceIndex) {
+    case 0:  // RGB
+      channels = {{"R (红色)", 0, 255, 255},
+                  {"G (绿色)", 0, 255, 255},
+                  {"B (蓝色)", 0, 255, 255}};
+      break;
+    case 1:  // HSV
+      channels = {{"H (色调)", 0, 180, 180},
+                  {"S (饱和度)", 0, 255, 255},
+                  {"V (明度)", 0, 255, 255}};
+      break;
+    case 2:  // LAB
+      channels = {{"L (亮度)", 0, 255, 255},
+                  {"A (绿-红)", 0, 255, 255},
+                  {"B (蓝-黄)", 0, 255, 255}};
+      break;
+    case 3:  // Gray
+      channels = {{"强度", 0, 255, 255}};
+      break;
+    case 4:  // Binary
+      channels = {{"阈值", 0, 255, 128}};
+      break;
+    default:
+      return;
+  }
+
+  for (const auto& ch : channels) {
+    QWidget* row = new QWidget(channel_sliders_widget_);
+    QHBoxLayout* row_layout = new QHBoxLayout(row);
+    row_layout->setContentsMargins(0, 0, 0, 0);
+
+    QLabel* label = new QLabel(row);
+    QSlider* slider = new QSlider(Qt::Horizontal, row);
+    slider->setRange(ch.min_val, ch.max_val);
+    slider->setValue(ch.default_val);
+
+    QSpinBox* spinbox = new QSpinBox(row);
+    spinbox->setRange(ch.min_val, ch.max_val);
+    spinbox->setValue(ch.default_val);
+    spinbox->setFixedWidth(60);
+
+    QString base_name = ch.name;
+    label->setText(QString("%1: %2").arg(base_name).arg(ch.default_val));
+
+    row_layout->addWidget(label);
+    row_layout->addWidget(slider, 1);
+    row_layout->addWidget(spinbox);
+    channel_sliders_layout_->addWidget(row);
+
+    // Bidirectional sync between slider and spinbox
+    connect(slider, &QSlider::valueChanged, spinbox, &QSpinBox::setValue);
+    connect(spinbox, QOverload<int>::of(&QSpinBox::valueChanged),
+            slider, &QSlider::setValue);
+
+    // Emit gains when either changes
+    connect(slider, &QSlider::valueChanged,
+            this, &RightSidebar::emitChannelGains);
+
+    channel_sliders_.append({label, slider, spinbox, base_name});
+  }
+
+  emitChannelGains();
+}
+
+void RightSidebar::emitChannelGains() {
+  QVector<int> gains;
+  for (auto& cs : channel_sliders_) {
+    int val = cs.slider->value();
+    gains.append(val);
+    cs.label->setText(QString("%1: %2").arg(cs.base_name).arg(val));
+  }
+  emit channel_gains_changed(gains);
+}
+
 void RightSidebar::enable_color_space_combo(bool enabled) {
   if (colorspace_combo_) {
     colorspace_combo_->setEnabled(enabled);
@@ -220,5 +330,6 @@ void RightSidebar::reset_color_space_combo() {
     colorspace_combo_->blockSignals(true);
     colorspace_combo_->setCurrentIndex(0);  // RGB
     colorspace_combo_->blockSignals(false);
+    updateChannelSliders(0);
   }
 }

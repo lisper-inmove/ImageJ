@@ -2,11 +2,14 @@
 #define IMAGEJ_FRAMES_RIGHT_SIDEBAR_H_
 
 #include <QWidget>
+#include <QVector>
 
 class QLabel;
 class QListWidgetItem;
 class QPushButton;
 class QComboBox;
+class QSlider;
+class QSpinBox;
 class QTabWidget;
 class QListWidget;
 class QVBoxLayout;
@@ -26,15 +29,25 @@ class RightSidebar : public QWidget {
 
  private slots:
   void onHistogramButtonClicked();
+  void updateChannelSliders(int colorSpaceIndex);
 
  signals:
   void selection_restore_requested(const QRect& image_rect);
   void color_space_changed(int index);
+  void channel_gains_changed(const QVector<int>& gains);
 
  private:
   void buildUi();
   void updateImageInfoTab();
   void onSelectionItemClicked(QListWidgetItem* item);
+  void emitChannelGains();
+
+  struct ChannelSlider {
+    QLabel* label;
+    QSlider* slider;
+    QSpinBox* spinbox;
+    QString base_name;
+  };
 
   // Tabs
   QTabWidget* tabs_;
@@ -51,6 +64,9 @@ class RightSidebar : public QWidget {
   QWidget* tools_tab_;
   QPushButton* histogram_btn_;
   QComboBox* colorspace_combo_;
+  QWidget* channel_sliders_widget_;
+  QVBoxLayout* channel_sliders_layout_;
+  QVector<ChannelSlider> channel_sliders_;
 
   // Tab 3 — Selection History
   QListWidget* selection_list_;

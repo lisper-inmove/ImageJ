@@ -24,6 +24,7 @@ protected:
 
 private slots:
     void onColorSpaceChanged(int index);
+    void onChannelGainsChanged(const QVector<int>& gains);
 
 private:
     void buildUi();
@@ -39,6 +40,7 @@ private:
     bool validateSettings();
     void addRecentFilePath(const QString& path);
     void updateRecentFileMenu();
+    void applyChannelGains(ImageData& data);
 
     QSplitter* splitter_;
     ImageCanvas* image_canvas_;
@@ -49,4 +51,6 @@ private:
     QStatusBar* status_bar_;
     QLabel* pixel_info_label_;
     ImageData original_data_;
+    int current_colorspace_;
+    QVector<int> channel_gains_;
 };

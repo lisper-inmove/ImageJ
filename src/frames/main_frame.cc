@@ -27,7 +27,8 @@ MainFrame::MainFrame(QWidget *parent)
     : QWidget(parent), splitter_(nullptr), image_canvas_(nullptr),
       right_sidebar_(nullptr), settings_(nullptr), menu_bar_(nullptr),
       recent_menu_(nullptr),
-      status_bar_(nullptr), pixel_info_label_(nullptr) {
+      status_bar_(nullptr), pixel_info_label_(nullptr),
+      current_colorspace_(0) {
   // 创建配置对象
   settings_ = new QSettings("ImageJ", "ImageJ", this);
 
@@ -263,6 +264,8 @@ void MainFrame::connectSignals() {
   // Color space combo (in sidebar tools tab)
   connect(right_sidebar_, &RightSidebar::color_space_changed,
           this, &MainFrame::onColorSpaceChanged);
+  connect(right_sidebar_, &RightSidebar::channel_gains_changed,
+          this, &MainFrame::onChannelGainsChanged);
 }
 
 void MainFrame::openImage() {
@@ -366,9 +369,14 @@ void MainFrame::onColorSpaceChanged(int index) {
     return;
   }
 
+  current_colorspace_ = index;
+
   if (index == 0) {
-    // RGB: restore original data directly, no conversion needed
-    doc->set_image_data(original_data_);
+    // RGB: copy original, apply gains, set
+    ImageData rgb_copy;
+    rgb_copy.copy_from(original_data_);
+    applyChannelGains(rgb_copy);
+    doc->set_image_data(rgb_copy);
     image_canvas_->update();
     return;
   }
@@ -384,6 +392,7 @@ void MainFrame::onColorSpaceChanged(int index) {
 
   ImageData converted = convertColorSpace(original_data_, target);
   if (converted.is_valid()) {
+    applyChannelGains(converted);
     doc->set_image_data(converted);
     image_canvas_->update();
   }
@@ -510,6 +519,52 @@ void MainFrame::openRecentFile() {
                        .arg(data.height())
                        .arg(QString::fromStdString(doc->metadata().file_format));
     status_bar_->showMessage(info, 5000);
+  }
+}
+
+void MainFrame::onChannelGainsChanged(const QVector<int>& gains) {
+  channel_gains_ = gains;
+  // Re-trigger conversion with new gains
+  onColorSpaceChanged(current_colorspace_);
+}
+
+void MainFrame::applyChannelGains(ImageData& data) {
+  if (channel_gains_.isEmpty()) {
+    return;
+  }
+
+  int channels = data.channels();
+  int w = data.width();
+  int h = data.height();
+
+  // Binary mode: gains[0] is threshold value
+  if (current_colorspace_ == 4 && data.format() == ImageData::PixelFormat::kGray8) {
+    int threshold = channel_gains_[0];
+    for (int y = 0; y < h; ++y) {
+      uint8_t* row = data.pixel(0, y);
+      for (int x = 0; x < w; ++x) {
+        row[x] = (row[x] >= threshold) ? 255 : 0;
+      }
+    }
+    return;
+  }
+
+  // Per-channel gain (multiplier)
+  for (int y = 0; y < h; ++y) {
+    uint8_t* row = data.pixel(0, y);
+    for (int x = 0; x < w; ++x) {
+      uint8_t* p = row + x * channels;
+      for (int ch = 0; ch < channels && ch < channel_gains_.size(); ++ch) {
+        int gain = channel_gains_[ch];
+        // Default gain is max (e.g. 255 → identity); scale accordingly
+        int max_gain = 255;
+        if (current_colorspace_ == 1 && ch == 0) {
+          max_gain = 180;  // H channel
+        }
+        int val = (static_cast<int>(p[ch]) * gain) / max_gain;
+        p[ch] = static_cast<uint8_t>(val < 0 ? 0 : (val > 255 ? 255 : val));
+      }
+    }
   }
 }
 
