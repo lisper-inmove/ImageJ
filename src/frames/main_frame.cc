@@ -291,14 +291,11 @@ void MainFrame::buildUi() {
       throw std::runtime_error("Failed to create RightSidebar");
     }
 
-    // 添加到分割器
+    // 添加到分割器 (stretch 4:1 → 80% : 20%)
     splitter_->addWidget(image_canvas_);
     splitter_->addWidget(right_sidebar_);
-
-    // 设置初始分割比例 (80% : 20%)
-    QList<int> sizes;
-    sizes << 800 << 200; // 基于默认1024宽度计算
-    splitter_->setSizes(sizes);
+    splitter_->setStretchFactor(0, 4);
+    splitter_->setStretchFactor(1, 1);
 
     // 尝试加载保存的splitter状态
     QByteArray splitter_state =
@@ -429,6 +426,9 @@ void MainFrame::setupLoadedDocument(ImageDocument* doc, const QString& file_path
   ImageDocument* old_doc = image_canvas_->document();
   image_canvas_->set_document(doc);
   delete old_doc;
+
+  // Fit image to window
+  image_canvas_->fit_to_window();
 
   // Update window title
   setWindowTitle(QString::fromStdString(doc->file_name()) + " - ImageJ");
@@ -570,8 +570,8 @@ void MainFrame::applyChannelGains(ImageData& data) {
 }
 
 void MainFrame::setDefaultGeometry() {
-  resize(1024, 768);
-  move(100, 100);
+  resize(1280, 720);
+  showMaximized();
 }
 
 bool MainFrame::validateSettings() {

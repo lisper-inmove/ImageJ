@@ -3,6 +3,8 @@
 #include <QApplication>
 #include <QComboBox>
 #include <QDialog>
+#include <QDialogButtonBox>
+#include <QDoubleSpinBox>
 #include <QGuiApplication>
 #include <QScreen>
 #include <QFormLayout>
@@ -342,6 +344,37 @@ void RightSidebar::onEqualizeHistClicked() {
 void RightSidebar::onCLAHEHistClicked() {
   if (!document_ || !document_->is_valid()) return;
 
+  // Show CLAHE config dialog
+  QDialog param_dialog(this);
+  param_dialog.setWindowTitle("CLAHE 参数");
+  param_dialog.setMinimumWidth(280);
+
+  QFormLayout* form = new QFormLayout(&param_dialog);
+
+  QDoubleSpinBox* clip_spin = new QDoubleSpinBox(&param_dialog);
+  clip_spin->setRange(0.1, 40.0);
+  clip_spin->setValue(3.0);
+  clip_spin->setDecimals(1);
+  clip_spin->setSingleStep(0.5);
+
+  QSpinBox* tile_spin = new QSpinBox(&param_dialog);
+  tile_spin->setRange(2, 64);
+  tile_spin->setValue(8);
+
+  form->addRow("Clip Limit:", clip_spin);
+  form->addRow("Tile Grid Size:", tile_spin);
+
+  QDialogButtonBox* buttons = new QDialogButtonBox(
+      QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &param_dialog);
+  connect(buttons, &QDialogButtonBox::accepted, &param_dialog, &QDialog::accept);
+  connect(buttons, &QDialogButtonBox::rejected, &param_dialog, &QDialog::reject);
+  form->addRow(buttons);
+
+  if (param_dialog.exec() != QDialog::Accepted) return;
+
+  double clip_limit = clip_spin->value();
+  int tile_size = tile_spin->value();
+
   ImageDocumentAdapter adapter(document_);
   QImage src = adapter.to_qimage();
   if (src.isNull()) return;
@@ -356,12 +389,12 @@ void RightSidebar::onCLAHEHistClicked() {
 
   cv::Mat src_mat = qimageToMat(src);
 
-  auto clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
+  auto clahe = cv::createCLAHE(clip_limit, cv::Size(tile_size, tile_size));
 
   if (src_mat.channels() == 1) {
     cv::Mat dst;
     clahe->apply(src_mat, dst);
-    showImageDialog(matToQImage(dst), "局部自适应直方图均衡化 (CLAHE)", this);
+    showImageDialog(matToQImage(dst), "CLAHE", this);
   } else {
     // Color: convert to HSV, equalize V, merge back
     cv::Mat hsv;
@@ -372,7 +405,7 @@ void RightSidebar::onCLAHEHistClicked() {
     cv::merge(channels, hsv);
     cv::Mat result;
     cv::cvtColor(hsv, result, cv::COLOR_HSV2BGR);
-    showImageDialog(matToQImage(result), "局部自适应直方图均衡化 (CLAHE)", this);
+    showImageDialog(matToQImage(result), "CLAHE", this);
   }
 }
 
