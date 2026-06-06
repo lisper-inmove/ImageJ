@@ -14,9 +14,21 @@
 #include <stdexcept>
 
 #include <QAction>
+#include <QComboBox>
 #include <QCursor>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFormLayout>
+#include <QImageReader>
+#include <QMessageBox>
+#include <QMimeData>
+#include <QSpinBox>
+#include <QUrl>
+#include <QVBoxLayout>
 
 #include "core/colorspace_converter.h"
 #include "core/image_document.h"
@@ -26,7 +38,6 @@
 MainFrame::MainFrame(QWidget *parent)
     : QWidget(parent), splitter_(nullptr), image_canvas_(nullptr),
       right_sidebar_(nullptr), settings_(nullptr), menu_bar_(nullptr),
-      recent_menu_(nullptr),
       status_bar_(nullptr), pixel_info_label_(nullptr),
       current_colorspace_(0) {
   // 创建配置对象
@@ -34,6 +45,8 @@ MainFrame::MainFrame(QWidget *parent)
 
   // 验证配置
   validateSettings();
+
+  setAcceptDrops(true);
 
   loadWindowSettings();
   buildUi();
@@ -89,6 +102,167 @@ void MainFrame::saveWindowSettings() {
 void MainFrame::closeEvent(QCloseEvent *event) {
   saveWindowSettings();
   event->accept();
+}
+
+void MainFrame::dragEnterEvent(QDragEnterEvent* event) {
+  if (event->mimeData()->hasUrls()) {
+    event->acceptProposedAction();
+  }
+}
+
+void MainFrame::dragMoveEvent(QDragMoveEvent* event) {
+  if (event->mimeData()->hasUrls()) {
+    event->acceptProposedAction();
+  }
+}
+
+void MainFrame::dropEvent(QDropEvent* event) {
+  const QMimeData* mime = event->mimeData();
+  if (!mime->hasUrls()) return;
+
+  QList<QUrl> urls = mime->urls();
+  if (urls.isEmpty()) return;
+
+  // Take the first file
+  QString file_path = urls.first().toLocalFile();
+  if (file_path.isEmpty()) return;
+
+  loadDroppedFile(file_path);
+}
+
+void MainFrame::loadDroppedFile(const QString& file_path) {
+  QFileInfo fi(file_path);
+  QString ext = fi.suffix().toLower();
+  bool is_raw = (ext == "raw" || ext == "bin" || ext == "dat");
+
+  ImageDocument* doc = new ImageDocument();
+  bool ok = false;
+  bool is_16bit = false;
+
+  if (is_raw) {
+    // Show config dialog for RAW files
+    QDialog config_dialog(this);
+    config_dialog.setWindowTitle("拖拽加载设置");
+    config_dialog.setMinimumWidth(320);
+
+    QFormLayout* form = new QFormLayout(&config_dialog);
+
+    QComboBox* type_combo = new QComboBox(&config_dialog);
+    type_combo->addItem("8-bit");
+    type_combo->addItem("Unsigned 16bit");
+
+    QSpinBox* width_spin = new QSpinBox(&config_dialog);
+    width_spin->setRange(1, 65536);
+    width_spin->setValue(10240);
+
+    QSpinBox* height_spin = new QSpinBox(&config_dialog);
+    height_spin->setRange(1, 65536);
+    height_spin->setValue(2560);
+
+    form->addRow("Image Type:", type_combo);
+    form->addRow("Width (pixels):", width_spin);
+    form->addRow("Height (pixels):", height_spin);
+
+    QDialogButtonBox* buttons = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &config_dialog);
+    connect(buttons, &QDialogButtonBox::accepted, &config_dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &config_dialog, &QDialog::reject);
+    form->addRow(buttons);
+
+    if (config_dialog.exec() != QDialog::Accepted) {
+      delete doc;
+      return;
+    }
+
+    int width = width_spin->value();
+    int height = height_spin->value();
+    is_16bit = (type_combo->currentIndex() == 1);
+
+    if (is_16bit) {
+      ok = doc->load_raw_from_file(file_path.toStdString(), width, height);
+      if (!ok) {
+        int64_t file_size = fi.size();
+        int64_t expected = static_cast<int64_t>(width) * height * 2;
+        if (file_size != expected) {
+          QMessageBox::warning(
+              this, "尺寸不匹配",
+              QString("文件大小 (%1 bytes) 与输入的尺寸不匹配。\n"
+                      "期望: %2 × %3 × 2 = %4 bytes")
+                  .arg(file_size).arg(width).arg(height).arg(expected));
+        } else {
+          QMessageBox::warning(this, "加载失败",
+                               "无法加载文件: " + file_path);
+        }
+      }
+    } else {
+      ok = doc->load_raw_from_file(file_path.toStdString(), width, height, true);
+    }
+  } else {
+    // Known format: detect dimensions with QImageReader
+    QImageReader reader(file_path);
+    if (reader.canRead() && reader.size().isValid()) {
+      QSize size = reader.size();
+
+      // Show read-only dialog with detected info
+      QDialog info_dialog(this);
+      info_dialog.setWindowTitle("拖拽加载设置");
+      info_dialog.setMinimumWidth(300);
+
+      QFormLayout* form = new QFormLayout(&info_dialog);
+
+      QLabel* type_label = new QLabel("Auto-detected (8-bit)", &info_dialog);
+      QLabel* width_label = new QLabel(QString::number(size.width()), &info_dialog);
+      QLabel* height_label = new QLabel(QString::number(size.height()), &info_dialog);
+
+      form->addRow("Image Type:", type_label);
+      form->addRow("Width (pixels):", width_label);
+      form->addRow("Height (pixels):", height_label);
+
+      QDialogButtonBox* buttons = new QDialogButtonBox(
+          QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &info_dialog);
+      connect(buttons, &QDialogButtonBox::accepted, &info_dialog, &QDialog::accept);
+      connect(buttons, &QDialogButtonBox::rejected, &info_dialog, &QDialog::reject);
+      form->addRow(buttons);
+
+      if (info_dialog.exec() != QDialog::Accepted) {
+        delete doc;
+        return;
+      }
+
+      ok = doc->load_from_file(file_path.toStdString());
+    } else {
+      QMessageBox::warning(this, "不支持的文件格式",
+                           "无法读取文件: " + file_path);
+      delete doc;
+      return;
+    }
+  }
+
+  if (!ok) {
+    delete doc;
+    if (status_bar_) {
+      status_bar_->showMessage("加载失败: " + file_path, 5000);
+    }
+    return;
+  }
+
+  setupLoadedDocument(doc, file_path);
+
+  // Update status bar
+  if (status_bar_) {
+    const auto& data = doc->image_data();
+    if (is_16bit) {
+      QString info = QString("已加载: %1x%2 raw (16bit→8bit)")
+                         .arg(data.width()).arg(data.height());
+      status_bar_->showMessage(info, 5000);
+    } else {
+      QString info = QString("已加载: %1x%2 %3")
+                         .arg(data.width())
+                         .arg(data.height())
+                         .arg(QString::fromStdString(doc->metadata().file_format));
+      status_bar_->showMessage(info, 5000);
+    }
+  }
 }
 
 void MainFrame::buildUi() {
@@ -169,14 +343,6 @@ void MainFrame::setupMenuBar() {
   QAction *new_action = file_menu->addAction("新建");
   new_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_N));
 
-  QAction *open_action = file_menu->addAction("打开");
-  open_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_O));
-
-  // Recent files submenu
-  file_menu->addSeparator();
-  recent_menu_ = file_menu->addMenu("最近文件");
-  updateRecentFileMenu();
-
   file_menu->addSeparator();
 
   QAction *save_action = file_menu->addAction("保存");
@@ -234,15 +400,6 @@ void MainFrame::setupStatusBar() {
 }
 
 void MainFrame::connectSignals() {
-  // Connect all "打开" actions to openImage()
-  QList<QAction *> actions = findChildren<QAction *>();
-  for (QAction *action : actions) {
-    if (action->text() == "打开") {
-      QObject::connect(action, &QAction::triggered,
-                       this, &MainFrame::openImage);
-    }
-  }
-
   // Connect ImageCanvas signals to RightSidebar
   connect(image_canvas_, &ImageCanvas::document_changed,
           right_sidebar_, &RightSidebar::set_document);
@@ -268,38 +425,19 @@ void MainFrame::connectSignals() {
           this, &MainFrame::onChannelGainsChanged);
 }
 
-void MainFrame::openImage() {
-  QString file_path = QFileDialog::getOpenFileName(
-      this, "打开图像", QString(),
-      "Images (*.png *.jpg *.jpeg *.bmp *.tiff *.webp);;All Files (*)");
-
-  if (file_path.isEmpty()) {
-    return;
-  }
-
-  ImageDocument *doc = new ImageDocument();
-  if (!doc->load_from_file(file_path.toStdString())) {
-    delete doc;
-    if (status_bar_) {
-      status_bar_->showMessage("加载失败: " + file_path, 5000);
-    }
-    return;
-  }
-
+void MainFrame::setupLoadedDocument(ImageDocument* doc, const QString& file_path) {
   // Pass ownership to image canvas (old document will be deleted if owned)
-  ImageDocument *old_doc = image_canvas_->document();
+  ImageDocument* old_doc = image_canvas_->document();
   image_canvas_->set_document(doc);
   delete old_doc;
 
   // Update window title
-  setWindowTitle(QString::fromStdString(doc->file_name()) +
-                 " - ImageJ");
+  setWindowTitle(QString::fromStdString(doc->file_name()) + " - ImageJ");
 
   // Update pixel info immediately (cursor may already be over canvas)
   QPoint canvas_pos = image_canvas_->mapFromGlobal(QCursor::pos());
   if (image_canvas_->rect().contains(canvas_pos)) {
-    updateStatusBarPixelInfo(
-        image_canvas_->canvas_to_image(canvas_pos));
+    updateStatusBarPixelInfo(image_canvas_->canvas_to_image(canvas_pos));
   }
 
   // Save original data for color space switching
@@ -311,18 +449,6 @@ void MainFrame::openImage() {
     right_sidebar_->enable_color_space_combo(true);
   }
 
-  // Save to recent files
-  addRecentFilePath(file_path);
-
-  // Update status bar
-  if (status_bar_) {
-    const auto &data = doc->image_data();
-    QString info = QString("已加载: %1x%2 %3")
-                       .arg(data.width())
-                       .arg(data.height())
-                       .arg(QString::fromStdString(doc->metadata().file_format));
-    status_bar_->showMessage(info, 5000);
-  }
 }
 
 void MainFrame::updateStatusBarPixelInfo(const QPoint &image_pos) {
@@ -395,130 +521,6 @@ void MainFrame::onColorSpaceChanged(int index) {
     applyChannelGains(converted);
     doc->set_image_data(converted);
     image_canvas_->update();
-  }
-}
-
-void MainFrame::addRecentFilePath(const QString& path) {
-  // Read current list from settings
-  QStringList paths;
-  int count = settings_->beginReadArray("RecentFiles");
-  for (int i = 0; i < count; ++i) {
-    settings_->setArrayIndex(i);
-    QString p = settings_->value("path").toString();
-    if (!p.isEmpty()) {
-      paths.append(p);
-    }
-  }
-  settings_->endArray();
-
-  // Deduplicate: remove existing entry with same path
-  paths.removeAll(path);
-
-  // Prepend new path, keep max 5
-  paths.prepend(path);
-  while (paths.size() > 5) {
-    paths.removeLast();
-  }
-
-  // Write back to settings
-  settings_->beginWriteArray("RecentFiles");
-  for (int i = 0; i < paths.size(); ++i) {
-    settings_->setArrayIndex(i);
-    settings_->setValue("path", paths[i]);
-  }
-  settings_->endArray();
-
-  updateRecentFileMenu();
-}
-
-void MainFrame::updateRecentFileMenu() {
-  if (!recent_menu_) {
-    return;
-  }
-  recent_menu_->clear();
-
-  int count = settings_->beginReadArray("RecentFiles");
-  if (count == 0) {
-    recent_menu_->setEnabled(false);
-    QAction* empty = recent_menu_->addAction("(空)");
-    empty->setEnabled(false);
-    settings_->endArray();
-    return;
-  }
-
-  recent_menu_->setEnabled(true);
-  for (int i = 0; i < count; ++i) {
-    settings_->setArrayIndex(i);
-    QString path = settings_->value("path").toString();
-    if (path.isEmpty()) {
-      continue;
-    }
-
-    QAction* action = recent_menu_->addAction(QFileInfo(path).fileName());
-    action->setToolTip(path);
-    action->setData(path);
-    connect(action, &QAction::triggered, this, &MainFrame::openRecentFile);
-  }
-  settings_->endArray();
-}
-
-void MainFrame::openRecentFile() {
-  QAction* action = qobject_cast<QAction*>(sender());
-  if (!action) {
-    return;
-  }
-
-  QString file_path = action->data().toString();
-  if (file_path.isEmpty() || !QFileInfo::exists(file_path)) {
-    if (status_bar_) {
-      status_bar_->showMessage("文件不存在: " + file_path, 5000);
-    }
-    return;
-  }
-
-  ImageDocument* doc = new ImageDocument();
-  if (!doc->load_from_file(file_path.toStdString())) {
-    delete doc;
-    if (status_bar_) {
-      status_bar_->showMessage("加载失败: " + file_path, 5000);
-    }
-    return;
-  }
-
-  // Pass ownership to image canvas
-  ImageDocument* old_doc = image_canvas_->document();
-  image_canvas_->set_document(doc);
-  delete old_doc;
-
-  // Update window title
-  setWindowTitle(QString::fromStdString(doc->file_name()) + " - ImageJ");
-
-  // Update pixel info immediately
-  QPoint canvas_pos = image_canvas_->mapFromGlobal(QCursor::pos());
-  if (image_canvas_->rect().contains(canvas_pos)) {
-    updateStatusBarPixelInfo(image_canvas_->canvas_to_image(canvas_pos));
-  }
-
-  // Save original data for color space switching
-  original_data_.copy_from(doc->image_data());
-
-  // Enable and reset color space combo in sidebar
-  if (right_sidebar_) {
-    right_sidebar_->reset_color_space_combo();
-    right_sidebar_->enable_color_space_combo(true);
-  }
-
-  // Update recent files (moves this path to top)
-  addRecentFilePath(file_path);
-
-  // Update status bar
-  if (status_bar_) {
-    const auto& data = doc->image_data();
-    QString info = QString("已加载: %1x%2 %3")
-                       .arg(data.width())
-                       .arg(data.height())
-                       .arg(QString::fromStdString(doc->metadata().file_format));
-    status_bar_->showMessage(info, 5000);
   }
 }
 

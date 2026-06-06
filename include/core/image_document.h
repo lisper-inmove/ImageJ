@@ -43,6 +43,8 @@ class ImageDocument {
 
   bool create_new(int width, int height, ImageData::PixelFormat format);
   bool load_from_file(const std::string& file_path);
+  bool load_raw_from_file(const std::string& file_path, int width, int height,
+                          bool is_8bit = false);
   bool save_to_file(const std::string& file_path);
   bool save_as(const std::string& file_path);
 

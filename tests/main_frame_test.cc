@@ -286,7 +286,6 @@ TEST_F(MenuBarTest, FileMenuActions) {
   }
 
   EXPECT_TRUE(action_texts.contains("新建"));
-  EXPECT_TRUE(action_texts.contains("打开"));
   EXPECT_TRUE(action_texts.contains("保存"));
   EXPECT_TRUE(action_texts.contains("另存为"));
   EXPECT_TRUE(action_texts.contains("退出"));
