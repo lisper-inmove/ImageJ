@@ -6,6 +6,8 @@
 #include <QPainter>
 #include <QResizeEvent>
 #include <QWheelEvent>
+#include <QContextMenuEvent>
+#include <QMenu>
 
 #include <algorithm>
 #include <cmath>
@@ -289,6 +291,26 @@ void ImageCanvas::wheelEvent(QWheelEvent *event) {
   emit view_changed();
   update();
   QWidget::wheelEvent(event);
+}
+
+void ImageCanvas::contextMenuEvent(QContextMenuEvent* event) {
+  if (!selection_rect_.isValid()) {
+    event->ignore();
+    return;
+  }
+
+  QMenu menu(this);
+  QAction* save_action = menu.addAction("另存为");
+  QAction* cut_action = menu.addAction("剪切");
+
+  QAction* chosen = menu.exec(event->globalPos());
+  if (chosen == save_action) {
+    emit save_selection_requested();
+  } else if (chosen == cut_action) {
+    emit cut_selection_requested();
+  }
+
+  event->accept();
 }
 
 QPoint ImageCanvas::image_to_canvas(const QPoint &image_point) const {

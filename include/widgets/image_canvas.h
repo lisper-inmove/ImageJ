@@ -53,6 +53,7 @@ class ImageCanvas : public QWidget {
   void mouseReleaseEvent(QMouseEvent* event) override;
   void wheelEvent(QWheelEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
+  void contextMenuEvent(QContextMenuEvent* event) override;
 
   // Coordinate conversion
   QPoint image_to_canvas(const QPoint& image_point) const;
@@ -67,6 +68,8 @@ class ImageCanvas : public QWidget {
   void image_clicked(const QPoint& image_position, Qt::MouseButton button);
   void selection_changed(const QRect& image_rect);
   void selection_completed(const QRect& image_rect);
+  void save_selection_requested();
+  void cut_selection_requested();
 
  public slots:
   void on_document_modified();
