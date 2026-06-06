@@ -21,6 +21,7 @@ ImageCanvas::ImageCanvas(QWidget *parent)
       background_style_(BackgroundStyle::kSolidColor),
       background_color_(QColor(0x2D, 0x2D, 0x2D)),
       is_selecting_(false),
+      selection_mode_(false),
       selection_rect_() {
   setMinimumSize(100, 100);
   setMouseTracking(true);
@@ -183,7 +184,7 @@ void ImageCanvas::resizeEvent(QResizeEvent *event) {
 }
 
 void ImageCanvas::mousePressEvent(QMouseEvent *event) {
-  if (event->button() == Qt::RightButton) {
+  if (selection_mode_ && event->button() == Qt::LeftButton) {
     is_selecting_ = true;
     QPoint image_pos = canvas_to_image(event->pos());
     selection_rect_ = QRect(image_pos, image_pos);
@@ -208,7 +209,7 @@ void ImageCanvas::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void ImageCanvas::mouseReleaseEvent(QMouseEvent *event) {
-  if (event->button() == Qt::RightButton && is_selecting_) {
+  if (is_selecting_) {
     is_selecting_ = false;
     selection_rect_ = selection_rect_.normalized();
     // Clamp to image bounds
@@ -226,7 +227,14 @@ void ImageCanvas::mouseReleaseEvent(QMouseEvent *event) {
 }
 
 void ImageCanvas::keyPressEvent(QKeyEvent *event) {
+  if (event->key() == Qt::Key_1 && event->modifiers() == Qt::ControlModifier) {
+    selection_mode_ = !selection_mode_;
+    setCursor(selection_mode_ ? Qt::CrossCursor : Qt::ArrowCursor);
+    return;
+  }
   if (event->key() == Qt::Key_Escape) {
+    selection_mode_ = false;
+    setCursor(Qt::ArrowCursor);
     if (is_selecting_ || selection_rect_.isValid()) {
       is_selecting_ = false;
       selection_rect_ = QRect();

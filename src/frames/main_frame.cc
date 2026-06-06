@@ -374,7 +374,6 @@ void MainFrame::setupMenuBar() {
   fit_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_0));
 
   QAction *actual_size_action = view_menu->addAction("实际大小");
-  actual_size_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_1));
 
   view_menu->addSeparator();
 

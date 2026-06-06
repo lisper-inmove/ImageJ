@@ -78,6 +78,7 @@ class ImageCanvas : public QWidget {
   BackgroundStyle background_style_;
   QColor background_color_;
   bool is_selecting_;
+  bool selection_mode_;
   QRect selection_rect_;  // in image coordinates
 
   void clampViewOffset();
