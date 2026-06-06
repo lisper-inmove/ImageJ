@@ -1,6 +1,10 @@
 #include "frames/right_sidebar.h"
 
+#include <QApplication>
 #include <QComboBox>
+#include <QDialog>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -11,6 +15,8 @@
 #include <QSpinBox>
 #include <QTabWidget>
 #include <QVBoxLayout>
+
+#include <opencv2/imgproc.hpp>
 
 #include "core/image_data.h"
 #include "core/image_document.h"
@@ -28,6 +34,8 @@ RightSidebar::RightSidebar(QWidget *parent)
       selection_info_label_(nullptr),
       tools_tab_(nullptr),
       histogram_btn_(nullptr),
+      equalize_hist_btn_(nullptr),
+      clahe_btn_(nullptr),
       colorspace_combo_(nullptr),
       channel_sliders_widget_(nullptr),
       channel_sliders_layout_(nullptr),
@@ -87,11 +95,14 @@ void RightSidebar::buildUi() {
   channel_sliders_layout_->setContentsMargins(0, 4, 0, 0);
   tools_layout->addWidget(channel_sliders_widget_);
 
-  // Histogram button at 1/3 width, below color space section
+  // Histogram / equalization buttons, below color space section
   histogram_btn_ = new QPushButton("灰度直方图", tools_tab_);
+  equalize_hist_btn_ = new QPushButton("直方图均衡化", tools_tab_);
+  clahe_btn_ = new QPushButton("局部自适应直方图均衡化", tools_tab_);
   QHBoxLayout *btn_layout = new QHBoxLayout();
   btn_layout->addWidget(histogram_btn_, 1);
-  btn_layout->addStretch(2);
+  btn_layout->addWidget(equalize_hist_btn_, 1);
+  btn_layout->addWidget(clahe_btn_, 1);
   tools_layout->addLayout(btn_layout);
 
   tools_layout->addStretch();
@@ -99,6 +110,10 @@ void RightSidebar::buildUi() {
 
   connect(histogram_btn_, &QPushButton::clicked,
           this, &RightSidebar::onHistogramButtonClicked);
+  connect(equalize_hist_btn_, &QPushButton::clicked,
+          this, &RightSidebar::onEqualizeHistClicked);
+  connect(clahe_btn_, &QPushButton::clicked,
+          this, &RightSidebar::onCLAHEHistClicked);
   connect(colorspace_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
           this, &RightSidebar::color_space_changed);
   connect(colorspace_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -225,6 +240,140 @@ void RightSidebar::updateImageInfoTab() {
 void RightSidebar::onHistogramButtonClicked() {
   HistogramDialog dialog(document_, current_selection_, this);
   dialog.exec();
+}
+
+namespace {
+
+cv::Mat qimageToMat(const QImage& img) {
+  if (img.format() == QImage::Format_Grayscale8) {
+    return cv::Mat(img.height(), img.width(), CV_8UC1,
+                   const_cast<uchar*>(img.bits()),
+                   static_cast<size_t>(img.bytesPerLine())).clone();
+  }
+  // RGB888 → BGR for OpenCV
+  QImage rgb = img.convertToFormat(QImage::Format_RGB888);
+  cv::Mat mat(rgb.height(), rgb.width(), CV_8UC3,
+              const_cast<uchar*>(rgb.bits()),
+              static_cast<size_t>(rgb.bytesPerLine()));
+  cv::Mat bgr;
+  cv::cvtColor(mat.clone(), bgr, cv::COLOR_RGB2BGR);
+  return bgr;
+}
+
+QImage matToQImage(const cv::Mat& mat) {
+  if (mat.channels() == 1) {
+    return QImage(mat.data, mat.cols, mat.rows,
+                  static_cast<int>(mat.step),
+                  QImage::Format_Grayscale8).copy();
+  }
+  // BGR → RGB
+  cv::Mat rgb;
+  cv::cvtColor(mat, rgb, cv::COLOR_BGR2RGB);
+  return QImage(rgb.data, rgb.cols, rgb.rows,
+                static_cast<int>(rgb.step),
+                QImage::Format_RGB888).copy();
+}
+
+void showImageDialog(const QImage& image, const QString& title,
+                     QWidget* parent) {
+  QDialog* dialog = new QDialog(parent);
+  dialog->setWindowTitle(title);
+  dialog->setAttribute(Qt::WA_DeleteOnClose);
+
+  QVBoxLayout* layout = new QVBoxLayout(dialog);
+
+  QScrollArea* scroll = new QScrollArea(dialog);
+  QLabel* label = new QLabel(scroll);
+  label->setPixmap(QPixmap::fromImage(image));
+  label->setAlignment(Qt::AlignCenter);
+  scroll->setWidget(label);
+  scroll->setWidgetResizable(false);
+
+  layout->addWidget(scroll);
+
+  // Size dialog to fit image (up to 80% of screen)
+  QScreen* screen = QGuiApplication::primaryScreen();
+  QSize screen_size = screen ? screen->availableGeometry().size() : QSize(1920, 1080);
+  int max_w = screen_size.width() * 4 / 5;
+  int max_h = screen_size.height() * 4 / 5;
+  QSize dlg_size = image.size().boundedTo(QSize(max_w, max_h));
+  dialog->resize(dlg_size.expandedTo(QSize(300, 200)));
+
+  dialog->show();
+}
+
+}  // namespace
+
+void RightSidebar::onEqualizeHistClicked() {
+  if (!document_ || !document_->is_valid()) return;
+
+  ImageDocumentAdapter adapter(document_);
+  QImage src = adapter.to_qimage();
+  if (src.isNull()) return;
+
+  // Crop to selection if active
+  if (current_selection_.isValid()) {
+    QRect clamped = current_selection_.intersected(src.rect());
+    if (!clamped.isEmpty()) {
+      src = src.copy(clamped);
+    }
+  }
+
+  cv::Mat src_mat = qimageToMat(src);
+
+  if (src_mat.channels() == 1) {
+    cv::Mat dst;
+    cv::equalizeHist(src_mat, dst);
+    showImageDialog(matToQImage(dst), "直方图均衡化", this);
+  } else {
+    // Color: convert to HSV, equalize V, merge back
+    cv::Mat hsv;
+    cv::cvtColor(src_mat, hsv, cv::COLOR_BGR2HSV);
+    std::vector<cv::Mat> channels;
+    cv::split(hsv, channels);
+    cv::equalizeHist(channels[2], channels[2]);
+    cv::merge(channels, hsv);
+    cv::Mat result;
+    cv::cvtColor(hsv, result, cv::COLOR_HSV2BGR);
+    showImageDialog(matToQImage(result), "直方图均衡化", this);
+  }
+}
+
+void RightSidebar::onCLAHEHistClicked() {
+  if (!document_ || !document_->is_valid()) return;
+
+  ImageDocumentAdapter adapter(document_);
+  QImage src = adapter.to_qimage();
+  if (src.isNull()) return;
+
+  // Crop to selection if active
+  if (current_selection_.isValid()) {
+    QRect clamped = current_selection_.intersected(src.rect());
+    if (!clamped.isEmpty()) {
+      src = src.copy(clamped);
+    }
+  }
+
+  cv::Mat src_mat = qimageToMat(src);
+
+  auto clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
+
+  if (src_mat.channels() == 1) {
+    cv::Mat dst;
+    clahe->apply(src_mat, dst);
+    showImageDialog(matToQImage(dst), "局部自适应直方图均衡化 (CLAHE)", this);
+  } else {
+    // Color: convert to HSV, equalize V, merge back
+    cv::Mat hsv;
+    cv::cvtColor(src_mat, hsv, cv::COLOR_BGR2HSV);
+    std::vector<cv::Mat> channels;
+    cv::split(hsv, channels);
+    clahe->apply(channels[2], channels[2]);
+    cv::merge(channels, hsv);
+    cv::Mat result;
+    cv::cvtColor(hsv, result, cv::COLOR_HSV2BGR);
+    showImageDialog(matToQImage(result), "局部自适应直方图均衡化 (CLAHE)", this);
+  }
 }
 
 void RightSidebar::updateChannelSliders(int colorSpaceIndex) {

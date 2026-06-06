@@ -29,6 +29,8 @@ class RightSidebar : public QWidget {
 
  private slots:
   void onHistogramButtonClicked();
+  void onEqualizeHistClicked();
+  void onCLAHEHistClicked();
   void updateChannelSliders(int colorSpaceIndex);
 
  signals:
@@ -63,6 +65,8 @@ class RightSidebar : public QWidget {
   // Tab 2 — Tools
   QWidget* tools_tab_;
   QPushButton* histogram_btn_;
+  QPushButton* equalize_hist_btn_;
+  QPushButton* clahe_btn_;
   QComboBox* colorspace_combo_;
   QWidget* channel_sliders_widget_;
   QVBoxLayout* channel_sliders_layout_;
