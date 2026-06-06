@@ -34,6 +34,7 @@ ImageCanvas::~ImageCanvas() = default;
 
 void ImageCanvas::set_document(ImageDocument *document) {
   document_ = document;
+  selection_rect_ = QRect();
   view_offset_ = QPoint(0, 0);
   emit document_changed(document_);
   update();
@@ -294,7 +295,7 @@ void ImageCanvas::wheelEvent(QWheelEvent *event) {
 }
 
 void ImageCanvas::contextMenuEvent(QContextMenuEvent* event) {
-  if (!selection_rect_.isValid()) {
+  if (!selection_rect_.isValid() || !document_ || !document_->is_valid()) {
     event->ignore();
     return;
   }

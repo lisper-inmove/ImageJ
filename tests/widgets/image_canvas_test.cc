@@ -10,6 +10,7 @@
 #include "widgets/image_canvas.h"
 #include "core/image_document.h"
 #include "core/image_document_adapter.h"
+#include "frames/main_frame.h"
 
 class ImageCanvasTest : public ::testing::Test {
  protected:
@@ -1050,6 +1051,39 @@ TEST_F(ImageCanvasTest, EscapeClearsSelectionDuringDrag) {
   QTest::qWait(50);
 
   EXPECT_FALSE(canvas.selection().isValid());
+}
+
+TEST_F(ImageCanvasTest, ExtractSelectionCopiesCorrectPixels) {
+  ImageData src;
+  src.create(4, 3, ImageData::PixelFormat::kRGB24);
+  // Fill with pattern: pixel (x,y) = (R=x*10, G=y*10, B=50)
+  for (int y = 0; y < 3; ++y) {
+    uint8_t* row = src.pixel(0, y);
+    for (int x = 0; x < 4; ++x) {
+      row[x * 3 + 0] = static_cast<uint8_t>(x * 10);
+      row[x * 3 + 1] = static_cast<uint8_t>(y * 10);
+      row[x * 3 + 2] = 50;
+    }
+  }
+
+  QRect rect(1, 0, 2, 2);
+  ImageData dst = extractSelection(src, rect);
+
+  EXPECT_EQ(dst.width(), 2);
+  EXPECT_EQ(dst.height(), 2);
+  EXPECT_EQ(dst.format(), ImageData::PixelFormat::kRGB24);
+
+  // Check pixel (0,0) in dst = pixel (1,0) in src: R=10, G=0, B=50
+  const uint8_t* p00 = dst.pixel(0, 0);
+  EXPECT_EQ(p00[0], 10);
+  EXPECT_EQ(p00[1], 0);
+  EXPECT_EQ(p00[2], 50);
+
+  // Check pixel (1,1) in dst = pixel (2,1) in src: R=20, G=10, B=50
+  const uint8_t* p11 = dst.pixel(1, 1);
+  EXPECT_EQ(p11[0], 20);
+  EXPECT_EQ(p11[1], 10);
+  EXPECT_EQ(p11[2], 50);
 }
 
 TEST_F(ImageCanvasTest, EscapeDoesNothingWithoutSelection) {

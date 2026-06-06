@@ -11,6 +11,7 @@
 #include <QSplitter>
 #include <QStatusBar>
 #include <QVBoxLayout>
+#include <cstring>
 #include <stdexcept>
 
 #include <QAction>
@@ -419,6 +420,12 @@ void MainFrame::connectSignals() {
           this, &MainFrame::onColorSpaceChanged);
   connect(right_sidebar_, &RightSidebar::channel_gains_changed,
           this, &MainFrame::onChannelGainsChanged);
+
+  // Selection context menu actions
+  connect(image_canvas_, &ImageCanvas::save_selection_requested,
+          this, &MainFrame::onSaveSelection);
+  connect(image_canvas_, &ImageCanvas::cut_selection_requested,
+          this, &MainFrame::onCutSelection);
 }
 
 void MainFrame::setupLoadedDocument(ImageDocument* doc, const QString& file_path) {
@@ -566,6 +573,85 @@ void MainFrame::applyChannelGains(ImageData& data) {
         p[ch] = static_cast<uint8_t>(val < 0 ? 0 : (val > 255 ? 255 : val));
       }
     }
+  }
+}
+
+ImageData extractSelection(const ImageData& src, const QRect& rect) {
+  ImageData dst;
+  dst.create(rect.width(), rect.height(), src.format());
+  int channels = src.channels();
+  for (int y = 0; y < rect.height(); ++y) {
+    const uint8_t* src_row = src.pixel(rect.x(), rect.y() + y);
+    uint8_t* dst_row = dst.pixel(0, y);
+    std::memcpy(dst_row, src_row, rect.width() * channels);
+  }
+  return dst;
+}
+
+void MainFrame::onSaveSelection() {
+  ImageDocument* doc = image_canvas_->document();
+  if (!doc || !doc->is_valid()) return;
+
+  QRect sel = image_canvas_->selection();
+  if (!sel.isValid()) return;
+
+  ImageData extracted = extractSelection(doc->image_data(), sel);
+
+  // Determine default extension from document metadata
+  QString default_ext;
+  const auto& meta = doc->metadata();
+  if (!meta.file_format.empty()) {
+    default_ext = QString::fromStdString(meta.file_format);
+  } else {
+    default_ext = "png";
+  }
+
+  QString save_path = QFileDialog::getSaveFileName(
+      this, "保存选中区域", QString(),
+      "Images (*." + default_ext + ");;All Files (*)");
+
+  if (save_path.isEmpty()) return;
+
+  ImageDocument temp_doc;
+  temp_doc.set_image_data(extracted);
+  if (temp_doc.save_as(save_path.toStdString())) {
+    if (status_bar_) {
+      status_bar_->showMessage("已保存: " + save_path, 5000);
+    }
+  } else {
+    QMessageBox::warning(this, "保存失败", "无法保存文件: " + save_path);
+  }
+}
+
+void MainFrame::onCutSelection() {
+  ImageDocument* doc = image_canvas_->document();
+  if (!doc || !doc->is_valid()) return;
+
+  QRect sel = image_canvas_->selection();
+  if (!sel.isValid()) return;
+
+  ImageData extracted = extractSelection(doc->image_data(), sel);
+
+  doc->set_image_data(extracted);
+
+  image_canvas_->clear_selection();
+
+  // Reset state as if a new image was loaded
+  current_colorspace_ = 0;
+  image_canvas_->fit_to_window();
+  original_data_.copy_from(doc->image_data());
+
+  if (right_sidebar_) {
+    right_sidebar_->reset_color_space_combo();
+    right_sidebar_->enable_color_space_combo(true);
+  }
+
+  image_canvas_->update();
+
+  if (status_bar_) {
+    const auto& data = doc->image_data();
+    status_bar_->showMessage(
+        QString("已裁剪至: %1x%2").arg(data.width()).arg(data.height()), 5000);
   }
 }
 

@@ -31,6 +31,8 @@ protected:
 private slots:
     void onColorSpaceChanged(int index);
     void onChannelGainsChanged(const QVector<int>& gains);
+    void onSaveSelection();
+    void onCutSelection();
 
 private:
     void buildUi();
@@ -57,3 +59,5 @@ private:
     int current_colorspace_;
     QVector<int> channel_gains_;
 };
+
+ImageData extractSelection(const ImageData& src, const QRect& rect);
