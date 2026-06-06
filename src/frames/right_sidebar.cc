@@ -71,7 +71,6 @@ void RightSidebar::buildUi() {
   // Tab 2: Tools
   tools_tab_ = new QWidget();
   QVBoxLayout *tools_layout = new QVBoxLayout(tools_tab_);
-  histogram_btn_ = new QPushButton("灰度直方图", tools_tab_);
 
   colorspace_combo_ = new QComboBox(tools_tab_);
   colorspace_combo_->addItem("RGB");
@@ -81,13 +80,19 @@ void RightSidebar::buildUi() {
   colorspace_combo_->addItem("Binary");
   colorspace_combo_->setEnabled(false);
 
-  tools_layout->addWidget(histogram_btn_);
   tools_layout->addWidget(colorspace_combo_);
 
   channel_sliders_widget_ = new QWidget(tools_tab_);
   channel_sliders_layout_ = new QVBoxLayout(channel_sliders_widget_);
   channel_sliders_layout_->setContentsMargins(0, 4, 0, 0);
   tools_layout->addWidget(channel_sliders_widget_);
+
+  // Histogram button at 1/3 width, below color space section
+  histogram_btn_ = new QPushButton("灰度直方图", tools_tab_);
+  QHBoxLayout *btn_layout = new QHBoxLayout();
+  btn_layout->addWidget(histogram_btn_, 1);
+  btn_layout->addStretch(2);
+  tools_layout->addLayout(btn_layout);
 
   tools_layout->addStretch();
   tabs_->addTab(tools_tab_, "工具");
