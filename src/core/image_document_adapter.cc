@@ -28,9 +28,42 @@ QImage ImageDocumentAdapter::to_qimage() const {
     return QImage();
   }
 
-  return QImage(const_cast<uint8_t *>(image_data.data()),
-                image_data.width(), image_data.height(),
-                calculate_bytes_per_line(image_data), qfmt);
+  // Expand grayscale to RGB for display to avoid Format_Grayscale8
+  // rendering quirks with externally-owned buffers
+  if (qfmt == QImage::Format_Grayscale8) {
+    QImage result(image_data.width(), image_data.height(),
+                  QImage::Format_RGB888);
+    for (int y = 0; y < image_data.height(); ++y) {
+      const uint8_t* src = image_data.pixel(0, y);
+      uint8_t* dst = result.scanLine(y);
+      for (int x = 0; x < image_data.width(); ++x) {
+        dst[x * 3] = src[x];
+        dst[x * 3 + 1] = src[x];
+        dst[x * 3 + 2] = src[x];
+      }
+    }
+    return result;
+  }
+
+  int data_stride = calculate_bytes_per_line(image_data);
+  int depth = image_data.channels() * 8;
+
+  // QImage requires 4-byte aligned scanlines
+  int qt_bytes_per_line = ((image_data.width() * depth + 31) / 32) * 4;
+
+  if (data_stride == qt_bytes_per_line) {
+    // Fast path: stride matches, wrap buffer directly
+    return QImage(const_cast<uint8_t *>(image_data.data()),
+                  image_data.width(), image_data.height(),
+                  data_stride, qfmt);
+  }
+
+  // Slow path: stride mismatch, need to copy to aligned QImage
+  QImage result(image_data.width(), image_data.height(), qfmt);
+  for (int y = 0; y < image_data.height(); ++y) {
+    std::memcpy(result.scanLine(y), image_data.pixel(0, y), data_stride);
+  }
+  return result;
 }
 
 QPixmap ImageDocumentAdapter::to_qpixmap() const {

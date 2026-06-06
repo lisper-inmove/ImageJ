@@ -152,10 +152,11 @@ void RightSidebar::set_zoom_factor(double factor) {
 void RightSidebar::update_selection_info(const QRect &image_rect) {
   current_selection_ = image_rect;
   if (image_rect.isValid()) {
+    int cx = image_rect.x() + image_rect.width() / 2;
+    int cy = image_rect.y() + image_rect.height() / 2;
     selection_info_label_->setText(
-        QString("(%1,%2) %3×%4")
-            .arg(image_rect.x())
-            .arg(image_rect.y())
+        QString("中心(%1,%2)  %3×%4")
+            .arg(cx).arg(cy)
             .arg(image_rect.width())
             .arg(image_rect.height()));
   } else {

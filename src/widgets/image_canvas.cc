@@ -24,6 +24,7 @@ ImageCanvas::ImageCanvas(QWidget *parent)
       background_color_(QColor(0x2D, 0x2D, 0x2D)),
       is_selecting_(false),
       selection_mode_(false),
+      selection_center_(),
       selection_rect_() {
   setMinimumSize(100, 100);
   setMouseTracking(true);
@@ -189,8 +190,8 @@ void ImageCanvas::resizeEvent(QResizeEvent *event) {
 void ImageCanvas::mousePressEvent(QMouseEvent *event) {
   if (selection_mode_ && event->button() == Qt::LeftButton) {
     is_selecting_ = true;
-    QPoint image_pos = canvas_to_image(event->pos());
-    selection_rect_ = QRect(image_pos, image_pos);
+    selection_center_ = canvas_to_image(event->pos());
+    selection_rect_ = QRect(selection_center_, QSize(1, 1));
   } else {
     QPoint image_pos = canvas_to_image(event->pos());
     emit image_clicked(image_pos, event->button());
@@ -200,9 +201,13 @@ void ImageCanvas::mousePressEvent(QMouseEvent *event) {
 
 void ImageCanvas::mouseMoveEvent(QMouseEvent *event) {
   if (is_selecting_) {
-    QPoint current_image = canvas_to_image(event->pos());
-    selection_rect_.setBottomRight(current_image);
-    emit selection_changed(selection_rect_.normalized());
+    QPoint current = canvas_to_image(event->pos());
+    int dx = std::abs(current.x() - selection_center_.x());
+    int dy = std::abs(current.y() - selection_center_.y());
+    selection_rect_ = QRect(selection_center_.x() - dx,
+                            selection_center_.y() - dy,
+                            dx * 2 + 1, dy * 2 + 1);
+    emit selection_changed(selection_rect_);
     update();
   } else {
     QPoint image_pos = canvas_to_image(event->pos());
@@ -214,7 +219,6 @@ void ImageCanvas::mouseMoveEvent(QMouseEvent *event) {
 void ImageCanvas::mouseReleaseEvent(QMouseEvent *event) {
   if (is_selecting_) {
     is_selecting_ = false;
-    selection_rect_ = selection_rect_.normalized();
     // Clamp to image bounds
     if (document_ && document_->is_valid()) {
       const auto &image_data = document_->image_data();

@@ -779,7 +779,7 @@ TEST_F(ImageCanvasTest, Ctrl1LeftClickDragCreatesSelection) {
 
   QRect sel = canvas.selection();
   EXPECT_TRUE(sel.isValid());
-  EXPECT_EQ(sel, QRect(50, 50, 101, 51));
+  EXPECT_EQ(sel, QRect(-50, 0, 201, 101));
 }
 
 TEST_F(ImageCanvasTest, SelectionChangedSignalEmitted) {
@@ -802,7 +802,7 @@ TEST_F(ImageCanvasTest, SelectionChangedSignalEmitted) {
   QTest::mouseRelease(&canvas, Qt::LeftButton, Qt::NoModifier, QPoint(100, 200));
   QTest::qWait(50);
 
-  EXPECT_EQ(received_rect, QRect(10, 20, 91, 181));
+  EXPECT_EQ(received_rect, QRect(-80, -160, 181, 361));
 }
 
 TEST_F(ImageCanvasTest, LeftClickStillEmitsImageClicked) {
@@ -885,13 +885,14 @@ TEST_F(ImageCanvasTest, SelectionScalesWithZoom) {
   QTest::mouseRelease(&canvas, Qt::LeftButton, Qt::NoModifier, QPoint(200, 200));
   QTest::qWait(50);
 
-  // Selection should be in image coords (half of canvas due to 2x zoom)
+  // Center at image (50,50), expand to (100,100): dx=50,dy=50
+  // rect = QRect(50-50, 50-50, 101, 101) = QRect(0, 0, 101, 101)
   QRect sel = canvas.selection();
-  EXPECT_EQ(sel, QRect(50, 50, 51, 51));
+  EXPECT_EQ(sel, QRect(0, 0, 101, 101));
 
   // Change zoom — selection stays in image coords
   canvas.set_zoom_factor(1.0);
-  EXPECT_EQ(canvas.selection(), QRect(50, 50, 51, 51));
+  EXPECT_EQ(canvas.selection(), QRect(0, 0, 101, 101));
 }
 
 TEST_F(ImageCanvasTest, SelectionMovesWithPan) {
@@ -910,12 +911,14 @@ TEST_F(ImageCanvasTest, SelectionMovesWithPan) {
   QTest::mouseRelease(&canvas, Qt::LeftButton, Qt::NoModifier, QPoint(200, 200));
   QTest::qWait(50);
 
+  // Center at (100,100), expand to (200,200): dx=100,dy=100
+  // rect = QRect(100-100, 100-100, 201, 201) = QRect(0, 0, 201, 201)
   QRect sel = canvas.selection();
-  EXPECT_EQ(sel, QRect(100, 100, 101, 101));
+  EXPECT_EQ(sel, QRect(0, 0, 201, 201));
 
   // Pan — selection stays in image coords
   canvas.set_view_offset(QPoint(50, 50));
-  EXPECT_EQ(canvas.selection(), QRect(100, 100, 101, 101));
+  EXPECT_EQ(canvas.selection(), QRect(0, 0, 201, 201));
 }
 
 TEST_F(ImageCanvasTest, PaintWithSelectionDoesNotCrash) {
@@ -958,7 +961,9 @@ TEST_F(ImageCanvasTest, SecondSelectionReplacesFirst) {
   QTest::mouseRelease(&canvas, Qt::LeftButton, Qt::NoModifier, QPoint(50, 50));
   QTest::qWait(50);
 
-  EXPECT_EQ(canvas.selection(), QRect(10, 10, 41, 41));
+  // Center at (10,10), expand to (50,50): dx=40,dy=40
+  // rect = QRect(10-40, 10-40, 81, 81) = QRect(-30, -30, 81, 81)
+  EXPECT_EQ(canvas.selection(), QRect(-30, -30, 81, 81));
 
   // Second selection
   QTest::mousePress(&canvas, Qt::LeftButton, Qt::NoModifier, QPoint(100, 100));
@@ -968,7 +973,9 @@ TEST_F(ImageCanvasTest, SecondSelectionReplacesFirst) {
   QTest::mouseRelease(&canvas, Qt::LeftButton, Qt::NoModifier, QPoint(200, 200));
   QTest::qWait(50);
 
-  EXPECT_EQ(canvas.selection(), QRect(100, 100, 101, 101));
+  // Center at (100,100), expand to (200,200): dx=100,dy=100
+  // rect = QRect(100-100, 100-100, 201, 201) = QRect(0, 0, 201, 201)
+  EXPECT_EQ(canvas.selection(), QRect(0, 0, 201, 201));
 }
 
 TEST_F(ImageCanvasTest, SelectionClampedToImageBounds) {
@@ -993,8 +1000,10 @@ TEST_F(ImageCanvasTest, SelectionClampedToImageBounds) {
   QTest::mouseRelease(&canvas, Qt::LeftButton, Qt::NoModifier, QPoint(200, 200));
   QTest::qWait(50);
 
-  // Selection should be clamped to image rect (0,0 100x100)
-  EXPECT_EQ(canvas.selection(), QRect(50, 50, 50, 50));
+  // Center at (50,50), expand to (200,200): dx=150,dy=150
+  // rect = QRect(50-150, 50-150, 301, 301) = QRect(-100, -100, 301, 301)
+  // After clamping to image bounds (0,0,100,100): QRect(0, 0, 100, 100)
+  EXPECT_EQ(canvas.selection(), QRect(0, 0, 100, 100));
 }
 
 TEST_F(ImageCanvasTest, EscapeClearsCompletedSelection) {
