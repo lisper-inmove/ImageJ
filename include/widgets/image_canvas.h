@@ -61,6 +61,8 @@ class ImageCanvas : public QWidget {
   QRect image_to_canvas(const QRect& image_rect) const;
   QRect canvas_to_image(const QRect& canvas_rect) const;
 
+  bool is_over_selection(const QPoint& image_point) const;
+
  signals:
   void document_changed(ImageDocument* new_document);
   void view_changed();
@@ -73,6 +75,7 @@ class ImageCanvas : public QWidget {
 
  public slots:
   void on_document_modified();
+  void resize_selection(int new_width, int new_height);
 
  private:
   ImageDocument* document_;
@@ -84,6 +87,9 @@ class ImageCanvas : public QWidget {
   bool selection_mode_;
   QPoint selection_center_;
   QRect selection_rect_;  // in image coordinates
+  bool is_moving_selection_;
+  QPoint move_origin_;
+  QPoint move_press_point_;
 
   void clampViewOffset();
 };

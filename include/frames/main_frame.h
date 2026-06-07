@@ -1,6 +1,9 @@
 ﻿#pragma once
 #include <QWidget>
 
+#include <QVector>
+#include <QSize>
+
 #include "core/image_data.h"
 
 class QLabel;
@@ -33,6 +36,8 @@ private slots:
     void onChannelGainsChanged(const QVector<int>& gains);
     void onSaveSelection();
     void onCutSelection();
+    void onSelectionSizeChanged(int width, int height);
+    void onHistoryItemSelected(int index);
 
 private:
     void buildUi();
@@ -58,6 +63,16 @@ private:
     ImageData original_data_;
     int current_colorspace_;
     QVector<int> channel_gains_;
+
+    struct CutHistoryEntry {
+        int index;
+        ImageData image_data;   // snapshot of full image after this cut
+        QSize before_size;
+        QSize after_size;
+    };
+    QVector<CutHistoryEntry> cut_history_;
+    ImageData original_image_data_;  // true original, never overwritten
+    QSize original_size_;
 };
 
 ImageData extractSelection(const ImageData& src, const QRect& rect);

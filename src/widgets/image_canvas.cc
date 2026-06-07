@@ -25,7 +25,10 @@ ImageCanvas::ImageCanvas(QWidget *parent)
       is_selecting_(false),
       selection_mode_(false),
       selection_center_(),
-      selection_rect_() {
+      selection_rect_(),
+      is_moving_selection_(false),
+      move_origin_(),
+      move_press_point_() {
   setMinimumSize(100, 100);
   setMouseTracking(true);
   setFocusPolicy(Qt::StrongFocus);
@@ -189,9 +192,19 @@ void ImageCanvas::resizeEvent(QResizeEvent *event) {
 
 void ImageCanvas::mousePressEvent(QMouseEvent *event) {
   if (selection_mode_ && event->button() == Qt::LeftButton) {
-    is_selecting_ = true;
-    selection_center_ = canvas_to_image(event->pos());
-    selection_rect_ = QRect(selection_center_, QSize(1, 1));
+    QPoint image_pos = canvas_to_image(event->pos());
+    // Shift held AND cursor over existing selection -> move mode
+    if ((event->modifiers() & Qt::ShiftModifier) && is_over_selection(image_pos)) {
+      is_moving_selection_ = true;
+      move_origin_ = selection_rect_.topLeft();
+      move_press_point_ = image_pos;
+      setCursor(Qt::ClosedHandCursor);
+    } else {
+      // Normal selection creation (center-out)
+      is_selecting_ = true;
+      selection_center_ = image_pos;
+      selection_rect_ = QRect(selection_center_, QSize(1, 1));
+    }
   } else {
     QPoint image_pos = canvas_to_image(event->pos());
     emit image_clicked(image_pos, event->button());
@@ -200,7 +213,25 @@ void ImageCanvas::mousePressEvent(QMouseEvent *event) {
 }
 
 void ImageCanvas::mouseMoveEvent(QMouseEvent *event) {
-  if (is_selecting_) {
+  if (is_moving_selection_) {
+    QPoint current = canvas_to_image(event->pos());
+    QPoint delta = current - move_press_point_;
+    QPoint new_top_left = move_origin_ + delta;
+
+    // Clamp to image bounds
+    if (document_ && document_->is_valid()) {
+      const auto& data = document_->image_data();
+      int max_x = data.width() - selection_rect_.width();
+      int max_y = data.height() - selection_rect_.height();
+      new_top_left.setX(std::clamp(new_top_left.x(), 0, max_x));
+      new_top_left.setY(std::clamp(new_top_left.y(), 0, max_y));
+    }
+
+    selection_rect_.moveTopLeft(new_top_left);
+    selection_center_ = selection_rect_.center();
+    emit selection_changed(selection_rect_);
+    update();
+  } else if (is_selecting_) {
     QPoint current = canvas_to_image(event->pos());
     int dx = std::abs(current.x() - selection_center_.x());
     int dy = std::abs(current.y() - selection_center_.y());
@@ -212,12 +243,27 @@ void ImageCanvas::mouseMoveEvent(QMouseEvent *event) {
   } else {
     QPoint image_pos = canvas_to_image(event->pos());
     emit mouse_over_image(image_pos);
+
+    // Cursor feedback: hand when Shift over selection
+    if ((event->modifiers() & Qt::ShiftModifier) && is_over_selection(image_pos)) {
+      setCursor(Qt::OpenHandCursor);
+    } else if (selection_mode_) {
+      setCursor(Qt::CrossCursor);
+    } else {
+      setCursor(Qt::ArrowCursor);
+    }
   }
   QWidget::mouseMoveEvent(event);
 }
 
 void ImageCanvas::mouseReleaseEvent(QMouseEvent *event) {
-  if (is_selecting_) {
+  if (is_moving_selection_) {
+    is_moving_selection_ = false;
+    move_origin_ = QPoint();
+    move_press_point_ = QPoint();
+    setCursor(selection_mode_ ? Qt::CrossCursor : Qt::ArrowCursor);
+    update();
+  } else if (is_selecting_) {
     is_selecting_ = false;
     // Clamp to image bounds
     if (document_ && document_->is_valid()) {
@@ -240,6 +286,7 @@ void ImageCanvas::keyPressEvent(QKeyEvent *event) {
     return;
   }
   if (event->key() == Qt::Key_Escape) {
+    is_moving_selection_ = false;
     selection_mode_ = false;
     setCursor(Qt::ArrowCursor);
     if (is_selecting_ || selection_rect_.isValid()) {
@@ -364,6 +411,34 @@ void ImageCanvas::clear_selection() {
   selection_rect_ = QRect();
   emit selection_changed(selection_rect_);
   update();
+}
+
+void ImageCanvas::resize_selection(int new_width, int new_height) {
+  if (!selection_rect_.isValid() || !document_ || !document_->is_valid()) return;
+  if (new_width < 1 || new_height < 1) return;
+
+  QPoint center = selection_rect_.center();
+  int half_w = (new_width - 1) / 2;
+  int half_h = (new_height - 1) / 2;
+
+  QRect new_rect(center.x() - half_w, center.y() - half_h,
+                 new_width, new_height);
+
+  // Clamp to image bounds
+  const auto& data = document_->image_data();
+  QRect image_bounds(0, 0, data.width(), data.height());
+  new_rect = new_rect.intersected(image_bounds);
+  if (new_rect.isEmpty()) return;
+
+  selection_rect_ = new_rect;
+  selection_center_ = selection_rect_.center();
+  emit selection_changed(selection_rect_);
+  update();
+}
+
+bool ImageCanvas::is_over_selection(const QPoint& image_point) const {
+  if (!selection_rect_.isValid()) return false;
+  return selection_rect_.contains(image_point);
 }
 
 void ImageCanvas::on_document_modified() {

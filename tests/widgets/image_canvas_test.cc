@@ -1109,3 +1109,54 @@ TEST_F(ImageCanvasTest, EscapeDoesNothingWithoutSelection) {
   EXPECT_FALSE(canvas.selection().isValid());
   SUCCEED();
 }
+
+// === resize_selection tests ===
+
+TEST_F(ImageCanvasTest, ResizeSelectionKeepsCenter) {
+  ImageCanvas canvas;
+  ImageDocument doc;
+  doc.image_data().create(100, 100, ImageData::PixelFormat::kGray8);
+  canvas.set_document(&doc);
+
+  // Set a 21x21 selection centered at (50, 50)
+  QRect initial(40, 40, 21, 21);
+  canvas.set_selection(initial);
+
+  // Resize to 10x10
+  canvas.resize_selection(10, 10);
+  QRect result = canvas.selection();
+  EXPECT_EQ(result.center(), QPoint(50, 50));
+  EXPECT_EQ(result.width(), 10);
+  EXPECT_EQ(result.height(), 10);
+}
+
+TEST_F(ImageCanvasTest, ResizeSelectionClampedToImageBounds) {
+  ImageCanvas canvas;
+  ImageDocument doc;
+  doc.image_data().create(100, 100, ImageData::PixelFormat::kGray8);
+  canvas.set_document(&doc);
+
+  // Small selection near top-left corner
+  canvas.set_selection(QRect(5, 5, 10, 10));
+
+  // Resize very large — must be clamped to image bounds
+  canvas.resize_selection(200, 200);
+  QRect result = canvas.selection();
+  EXPECT_EQ(result.x(), 0);
+  EXPECT_EQ(result.y(), 0);
+  EXPECT_LE(result.right(), 99);
+  EXPECT_LE(result.bottom(), 99);
+}
+
+TEST_F(ImageCanvasTest, IsOverSelectionReturnsCorrectly) {
+  ImageCanvas canvas;
+  ImageDocument doc;
+  doc.image_data().create(100, 100, ImageData::PixelFormat::kGray8);
+  canvas.set_document(&doc);
+
+  canvas.set_selection(QRect(10, 10, 20, 20));
+  EXPECT_TRUE(canvas.is_over_selection(QPoint(20, 20)));   // center
+  EXPECT_TRUE(canvas.is_over_selection(QPoint(10, 10)));   // top-left corner
+  EXPECT_FALSE(canvas.is_over_selection(QPoint(0, 0)));    // outside
+  EXPECT_FALSE(canvas.is_over_selection(QPoint(35, 35)));  // outside
+}

@@ -32,13 +32,14 @@ TEST_F(RightSidebarTest, InheritsFromQWidget) {
   EXPECT_TRUE(dynamic_cast<QWidget *>(sidebar_.get()) != nullptr);
 }
 
-TEST_F(RightSidebarTest, HasThreeTabs) {
+TEST_F(RightSidebarTest, HasFourTabs) {
   QTabWidget *tabs = sidebar_->findChild<QTabWidget *>();
   ASSERT_NE(tabs, nullptr);
-  EXPECT_EQ(tabs->count(), 3);
+  EXPECT_EQ(tabs->count(), 4);
   EXPECT_EQ(tabs->tabText(0).toStdString(), "图片信息");
   EXPECT_EQ(tabs->tabText(1).toStdString(), "工具");
   EXPECT_EQ(tabs->tabText(2).toStdString(), "选择历史");
+  EXPECT_EQ(tabs->tabText(3).toStdString(), "剪切历史");
 }
 
 TEST_F(RightSidebarTest, SetDocumentUpdatesInfo) {

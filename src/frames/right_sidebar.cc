@@ -42,6 +42,11 @@ RightSidebar::RightSidebar(QWidget *parent)
       channel_sliders_widget_(nullptr),
       channel_sliders_layout_(nullptr),
       selection_list_(nullptr),
+      selection_width_spin_(nullptr),
+      selection_height_spin_(nullptr),
+      selection_size_widget_(nullptr),
+      cut_history_list_(nullptr),
+      restore_original_btn_(nullptr),
       document_(nullptr),
       zoom_factor_(1.0),
       rotation_(0.0),
@@ -97,6 +102,34 @@ void RightSidebar::buildUi() {
   channel_sliders_layout_->setContentsMargins(0, 4, 0, 0);
   tools_layout->addWidget(channel_sliders_widget_);
 
+  // Selection size spinboxes
+  selection_size_widget_ = new QWidget(tools_tab_);
+  QHBoxLayout* sel_size_layout = new QHBoxLayout(selection_size_widget_);
+  sel_size_layout->setContentsMargins(0, 4, 0, 4);
+
+  QLabel* sel_label = new QLabel("选择大小:", selection_size_widget_);
+  selection_width_spin_ = new QSpinBox(selection_size_widget_);
+  selection_width_spin_->setRange(1, 99999);
+  selection_width_spin_->setEnabled(false);
+  selection_width_spin_->setToolTip("宽度");
+
+  selection_height_spin_ = new QSpinBox(selection_size_widget_);
+  selection_height_spin_->setRange(1, 99999);
+  selection_height_spin_->setEnabled(false);
+  selection_height_spin_->setToolTip("高度");
+
+  sel_size_layout->addWidget(sel_label);
+  sel_size_layout->addWidget(selection_width_spin_);
+  sel_size_layout->addWidget(new QLabel("\u00d7", selection_size_widget_));
+  sel_size_layout->addWidget(selection_height_spin_);
+
+  tools_layout->addWidget(selection_size_widget_);
+
+  connect(selection_width_spin_, QOverload<int>::of(&QSpinBox::valueChanged),
+          this, &RightSidebar::onSelectionWidthChanged);
+  connect(selection_height_spin_, QOverload<int>::of(&QSpinBox::valueChanged),
+          this, &RightSidebar::onSelectionHeightChanged);
+
   // Histogram / equalization buttons, below color space section
   histogram_btn_ = new QPushButton("灰度直方图", tools_tab_);
   equalize_hist_btn_ = new QPushButton("直方图均衡化", tools_tab_);
@@ -130,6 +163,26 @@ void RightSidebar::buildUi() {
 
   connect(selection_list_, &QListWidget::itemClicked,
           this, &RightSidebar::onSelectionItemClicked);
+
+  // Tab 4: Cut History
+  QWidget* cut_history_tab = new QWidget(this);
+  QVBoxLayout* cut_history_layout = new QVBoxLayout(cut_history_tab);
+  cut_history_layout->setContentsMargins(4, 4, 4, 4);
+
+  restore_original_btn_ = new QPushButton("还原原始", cut_history_tab);
+  cut_history_layout->addWidget(restore_original_btn_);
+
+  cut_history_list_ = new QListWidget(cut_history_tab);
+  cut_history_list_->setSelectionMode(QAbstractItemView::SingleSelection);
+  cut_history_layout->addWidget(cut_history_list_);
+
+  tabs_->addTab(cut_history_tab, "剪切历史");
+
+  connect(cut_history_list_, &QListWidget::itemClicked,
+          this, &RightSidebar::onCutHistoryItemClicked);
+  connect(restore_original_btn_, &QPushButton::clicked, this, [this]() {
+      emit history_item_selected(-1);
+  });
 
   main_layout_->addWidget(tabs_);
 
@@ -520,4 +573,50 @@ void RightSidebar::reset_color_space_combo() {
     colorspace_combo_->blockSignals(false);
     updateChannelSliders(0);
   }
+}
+
+void RightSidebar::update_selection_size_spinboxes(const QRect& image_rect) {
+  if (!selection_width_spin_ || !selection_height_spin_) return;
+
+  bool has_selection = image_rect.isValid();
+  selection_width_spin_->setEnabled(has_selection);
+  selection_height_spin_->setEnabled(has_selection);
+
+  if (has_selection) {
+    selection_width_spin_->blockSignals(true);
+    selection_height_spin_->blockSignals(true);
+    selection_width_spin_->setValue(image_rect.width());
+    selection_height_spin_->setValue(image_rect.height());
+    selection_width_spin_->blockSignals(false);
+    selection_height_spin_->blockSignals(false);
+  }
+}
+
+void RightSidebar::onSelectionWidthChanged(int value) {
+  if (!selection_height_spin_) return;
+  emit selection_size_changed(value, selection_height_spin_->value());
+}
+
+void RightSidebar::onSelectionHeightChanged(int value) {
+  if (!selection_width_spin_) return;
+  emit selection_size_changed(selection_width_spin_->value(), value);
+}
+
+void RightSidebar::add_cut_history_entry(const QString& label) {
+  if (!cut_history_list_) return;
+  QListWidgetItem* item = new QListWidgetItem(label, cut_history_list_);
+  item->setData(Qt::UserRole, cut_history_list_->count());
+  cut_history_list_->addItem(item);
+}
+
+void RightSidebar::clear_cut_history() {
+  if (cut_history_list_) {
+    cut_history_list_->clear();
+  }
+}
+
+void RightSidebar::onCutHistoryItemClicked(QListWidgetItem* item) {
+  if (!item || !cut_history_list_) return;
+  int index = cut_history_list_->row(item);
+  emit history_item_selected(index);
 }

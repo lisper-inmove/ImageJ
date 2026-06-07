@@ -419,6 +419,18 @@ void MainFrame::connectSignals() {
           this, &MainFrame::onSaveSelection);
   connect(image_canvas_, &ImageCanvas::cut_selection_requested,
           this, &MainFrame::onCutSelection);
+
+  // Cut history list selection
+  connect(right_sidebar_, &RightSidebar::history_item_selected,
+          this, &MainFrame::onHistoryItemSelected);
+
+  // Selection size spinbox -> resize selection in canvas
+  connect(right_sidebar_, &RightSidebar::selection_size_changed,
+          this, &MainFrame::onSelectionSizeChanged);
+
+  // Selection changed (by drag or move) -> update spinbox values
+  connect(image_canvas_, &ImageCanvas::selection_changed,
+          right_sidebar_, &RightSidebar::update_selection_size_spinboxes);
 }
 
 void MainFrame::setupLoadedDocument(ImageDocument *doc,
@@ -442,11 +454,19 @@ void MainFrame::setupLoadedDocument(ImageDocument *doc,
 
   // Save original data for color space switching
   original_data_.copy_from(doc->image_data());
+  original_image_data_.copy_from(doc->image_data());
+  original_size_ = QSize(doc->image_data().width(), doc->image_data().height());
 
   // Enable and reset color space combo in sidebar
   if (right_sidebar_) {
     right_sidebar_->reset_color_space_combo();
     right_sidebar_->enable_color_space_combo(true);
+  }
+
+  // Clear cut history for new document
+  cut_history_.clear();
+  if (right_sidebar_) {
+    right_sidebar_->clear_cut_history();
   }
 }
 
@@ -636,9 +656,19 @@ void MainFrame::onCutSelection() {
   QRect sel = image_canvas_->selection();
   if (!sel.isValid()) return;
 
-  ImageData extracted = extractSelection(doc->image_data(), sel);
+  // Record before size for history display
+  QSize before_size(doc->image_data().width(), doc->image_data().height());
 
+  ImageData extracted = extractSelection(doc->image_data(), sel);
   doc->set_image_data(extracted);
+
+  // Push snapshot onto cut history
+  CutHistoryEntry entry;
+  entry.index = cut_history_.size() + 1;
+  entry.image_data.copy_from(doc->image_data());
+  entry.before_size = before_size;
+  entry.after_size = QSize(extracted.width(), extracted.height());
+  cut_history_.append(entry);
 
   image_canvas_->clear_selection();
 
@@ -650,6 +680,14 @@ void MainFrame::onCutSelection() {
   if (right_sidebar_) {
     right_sidebar_->reset_color_space_combo();
     right_sidebar_->enable_color_space_combo(true);
+    // Add to history list widget
+    QString label = QString("%1. %2×%3 → %4×%5")
+                        .arg(entry.index)
+                        .arg(entry.before_size.width())
+                        .arg(entry.before_size.height())
+                        .arg(entry.after_size.width())
+                        .arg(entry.after_size.height());
+    right_sidebar_->add_cut_history_entry(label);
   }
 
   image_canvas_->update();
@@ -658,6 +696,38 @@ void MainFrame::onCutSelection() {
     const auto& data = doc->image_data();
     status_bar_->showMessage(
         QString("已裁剪至: %1x%2").arg(data.width()).arg(data.height()), 5000);
+  }
+}
+
+void MainFrame::onSelectionSizeChanged(int width, int height) {
+  if (image_canvas_) {
+    image_canvas_->resize_selection(width, height);
+  }
+}
+
+void MainFrame::onHistoryItemSelected(int index) {
+  ImageDocument* doc = image_canvas_->document();
+  if (!doc) return;
+
+  if (index == -1) {
+    // Restore original
+    doc->set_image_data(original_image_data_);
+    original_data_.copy_from(original_image_data_);
+  } else if (index >= 0 && index < cut_history_.size()) {
+    doc->set_image_data(cut_history_[index].image_data);
+    original_data_.copy_from(cut_history_[index].image_data);
+  } else {
+    return;
+  }
+
+  image_canvas_->clear_selection();
+  image_canvas_->fit_to_window();
+  image_canvas_->update();
+
+  current_colorspace_ = 0;
+  if (right_sidebar_) {
+    right_sidebar_->reset_color_space_combo();
+    right_sidebar_->enable_color_space_combo(true);
   }
 }
 
