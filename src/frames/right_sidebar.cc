@@ -5,13 +5,14 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
-#include <QGuiApplication>
-#include <QScreen>
 #include <QFormLayout>
+#include <QGroupBox>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
+#include <QScreen>
 #include <QScrollArea>
 #include <QSlider>
 #include <QSpinBox>
@@ -30,31 +31,19 @@
 // ============================================================================
 
 RightSidebar::RightSidebar(QWidget *parent)
-    : QWidget(parent),
-      tabs_(nullptr),
-      info_tab_(nullptr),
-      size_label_(nullptr),
-      type_label_(nullptr),
-      zoom_label_(nullptr),
-      rotation_label_(nullptr),
-      selection_info_label_(nullptr),
-      tools_tab_(nullptr),
-      histogram_btn_(nullptr),
-      equalize_hist_btn_(nullptr),
-      clahe_btn_(nullptr),
-      colorspace_combo_(nullptr),
-      channel_sliders_widget_(nullptr),
-      channel_sliders_layout_(nullptr),
-      selection_list_(nullptr),
-      selection_width_spin_(nullptr),
-      selection_height_spin_(nullptr),
-      selection_size_widget_(nullptr),
-      cut_history_list_(nullptr),
-      restore_original_btn_(nullptr),
-      document_(nullptr),
-      zoom_factor_(1.0),
-      rotation_(0.0),
-      main_layout_(nullptr) {
+    : QWidget(parent), tabs_(nullptr), info_tab_(nullptr), size_label_(nullptr),
+      type_label_(nullptr), zoom_label_(nullptr), rotation_label_(nullptr),
+      selection_info_label_(nullptr), tools_tab_(nullptr),
+      histogram_btn_(nullptr), equalize_hist_btn_(nullptr), clahe_btn_(nullptr),
+      colorspace_combo_(nullptr), channel_sliders_widget_(nullptr),
+      channel_sliders_layout_(nullptr), selection_list_(nullptr),
+      selection_width_spin_(nullptr), selection_height_spin_(nullptr),
+      selection_size_widget_(nullptr), cut_history_list_(nullptr),
+      restore_original_btn_(nullptr), blur_group_(nullptr),
+      blur_ksize_spin_(nullptr), blur_anchor_x_spin_(nullptr),
+      blur_anchor_y_spin_(nullptr), blur_border_combo_(nullptr),
+      blur_apply_btn_(nullptr), document_(nullptr), zoom_factor_(1.0),
+      rotation_(0.0), main_layout_(nullptr) {
   buildUi();
 }
 
@@ -128,10 +117,10 @@ void RightSidebar::buildUi() {
   // --- 选区大小微调框 ---
   // 默认禁用，有选区时由 update_selection_size_spinboxes() 启用
   selection_size_widget_ = new QWidget(tools_tab_);
-  QHBoxLayout* sel_size_layout = new QHBoxLayout(selection_size_widget_);
+  QHBoxLayout *sel_size_layout = new QHBoxLayout(selection_size_widget_);
   sel_size_layout->setContentsMargins(0, 4, 0, 4);
 
-  QLabel* sel_label = new QLabel("选择大小:", selection_size_widget_);
+  QLabel *sel_label = new QLabel("选择大小:", selection_size_widget_);
   selection_width_spin_ = new QSpinBox(selection_size_widget_);
   selection_width_spin_->setRange(1, 99999);
   selection_width_spin_->setEnabled(false);
@@ -144,7 +133,8 @@ void RightSidebar::buildUi() {
 
   sel_size_layout->addWidget(sel_label);
   sel_size_layout->addWidget(selection_width_spin_);
-  sel_size_layout->addWidget(new QLabel("\u00d7", selection_size_widget_)); // × 号分隔符
+  sel_size_layout->addWidget(
+      new QLabel("\u00d7", selection_size_widget_)); // × 号分隔符
   sel_size_layout->addWidget(selection_height_spin_);
 
   tools_layout->addWidget(selection_size_widget_);
@@ -153,9 +143,10 @@ void RightSidebar::buildUi() {
    * 微调框信号连接（带 blockSignals 反馈循环防护）：
    *
    * 数据流回路：
-   * 用户修改微调框 → selection_size_changed → MainFrame → ImageCanvas::resize_selection()
-   * → emit selection_changed → RightSidebar::update_selection_size_spinboxes()
-   * → spinbox->setValue()（通过 blockSignals 阻止再次发出 valueChanged）
+   * 用户修改微调框 → selection_size_changed → MainFrame →
+   * ImageCanvas::resize_selection() → emit selection_changed →
+   * RightSidebar::update_selection_size_spinboxes() → spinbox->setValue()（通过
+   * blockSignals 阻止再次发出 valueChanged）
    *
    * 如果不用 blockSignals 包裹 setValue()，就会形成无限循环。
    */
@@ -174,21 +165,70 @@ void RightSidebar::buildUi() {
   btn_layout->addWidget(clahe_btn_, 1);
   tools_layout->addLayout(btn_layout);
 
+  // --- 卷积模糊 ---
+  blur_group_ = new QGroupBox("卷积模糊", tools_tab_);
+  QFormLayout *blur_layout = new QFormLayout(blur_group_);
+
+  // ksize 微调框（只允许奇数 1/3/5/.../31）
+  blur_ksize_spin_ = new QSpinBox(blur_group_);
+  blur_ksize_spin_->setRange(1, 31);
+  blur_ksize_spin_->setSingleStep(2); // 步长2确保只能选择奇数
+  blur_ksize_spin_->setValue(3);
+  blur_ksize_spin_->setToolTip("卷积核大小 (ksize)，必须为奇数");
+
+  // anchor X 微调框（默认 -1 = 核中心）
+  blur_anchor_x_spin_ = new QSpinBox(blur_group_);
+  blur_anchor_x_spin_->setRange(-1, 31);
+  blur_anchor_x_spin_->setValue(-1);
+  blur_anchor_x_spin_->setToolTip("锚点 X 坐标，-1 表示核中心");
+
+  // anchor Y 微调框（默认 -1 = 核中心）
+  blur_anchor_y_spin_ = new QSpinBox(blur_group_);
+  blur_anchor_y_spin_->setRange(-1, 31);
+  blur_anchor_y_spin_->setValue(-1);
+  blur_anchor_y_spin_->setToolTip("锚点 Y 坐标，-1 表示核中心");
+
+  // borderType 下拉框
+  blur_border_combo_ = new QComboBox(blur_group_);
+  blur_border_combo_->addItem("BORDER_DEFAULT", cv::BORDER_DEFAULT);
+  blur_border_combo_->addItem("BORDER_CONSTANT", cv::BORDER_CONSTANT);
+  blur_border_combo_->addItem("BORDER_REPLICATE", cv::BORDER_REPLICATE);
+  blur_border_combo_->addItem("BORDER_REFLECT", cv::BORDER_REFLECT);
+  blur_border_combo_->addItem("BORDER_WRAP", cv::BORDER_WRAP);
+  blur_border_combo_->addItem("BORDER_REFLECT_101", cv::BORDER_REFLECT_101);
+  blur_border_combo_->setCurrentIndex(0); // BORDER_DEFAULT
+  blur_border_combo_->setToolTip("边界填充类型");
+
+  // "应用"按钮
+  blur_apply_btn_ = new QPushButton("应用", blur_group_);
+
+  blur_layout->addRow("ksize:", blur_ksize_spin_);
+  blur_layout->addRow("anchor X:", blur_anchor_x_spin_);
+  blur_layout->addRow("anchor Y:", blur_anchor_y_spin_);
+  blur_layout->addRow("borderType:", blur_border_combo_);
+  blur_layout->addRow(blur_apply_btn_);
+
+  tools_layout->addWidget(blur_group_);
+
   tools_layout->addStretch();
   tabs_->addTab(tools_tab_, "工具");
 
   // 工具标签页信号连接
-  connect(histogram_btn_, &QPushButton::clicked,
-          this, &RightSidebar::onHistogramButtonClicked);
-  connect(equalize_hist_btn_, &QPushButton::clicked,
-          this, &RightSidebar::onEqualizeHistClicked);
-  connect(clahe_btn_, &QPushButton::clicked,
-          this, &RightSidebar::onCLAHEHistClicked);
+  connect(histogram_btn_, &QPushButton::clicked, this,
+          &RightSidebar::onHistogramButtonClicked);
+  connect(equalize_hist_btn_, &QPushButton::clicked, this,
+          &RightSidebar::onEqualizeHistClicked);
+  connect(clahe_btn_, &QPushButton::clicked, this,
+          &RightSidebar::onCLAHEHistClicked);
+  connect(blur_apply_btn_, &QPushButton::clicked, this,
+          &RightSidebar::onBlurClicked);
   // 色彩空间下拉框变化 → 发出信号 + 重建通道滑块
-  connect(colorspace_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-          this, &RightSidebar::color_space_changed);
-  connect(colorspace_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-          this, &RightSidebar::updateChannelSliders);
+  connect(colorspace_combo_,
+          QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+          &RightSidebar::color_space_changed);
+  connect(colorspace_combo_,
+          QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+          &RightSidebar::updateChannelSliders);
 
   // ========================================================================
   // Tab 3: 选择历史
@@ -199,15 +239,15 @@ void RightSidebar::buildUi() {
   selection_list_->setSelectionMode(QAbstractItemView::SingleSelection);
   tabs_->addTab(selection_list_, "选择历史");
 
-  connect(selection_list_, &QListWidget::itemClicked,
-          this, &RightSidebar::onSelectionItemClicked);
+  connect(selection_list_, &QListWidget::itemClicked, this,
+          &RightSidebar::onSelectionItemClicked);
 
   // ========================================================================
   // Tab 4: 剪切历史
   // ========================================================================
   // 使用 QWidget 包裹控件以统一管理布局
-  QWidget* cut_history_tab = new QWidget(this);
-  QVBoxLayout* cut_history_layout = new QVBoxLayout(cut_history_tab);
+  QWidget *cut_history_tab = new QWidget(this);
+  QVBoxLayout *cut_history_layout = new QVBoxLayout(cut_history_tab);
   cut_history_layout->setContentsMargins(4, 4, 4, 4);
 
   // "还原原始"按钮：点击发出 history_item_selected(-1)
@@ -222,12 +262,11 @@ void RightSidebar::buildUi() {
   tabs_->addTab(cut_history_tab, "剪切历史");
 
   // 列表项点击 → 计算行索引 → 发出 history_item_selected
-  connect(cut_history_list_, &QListWidget::itemClicked,
-          this, &RightSidebar::onCutHistoryItemClicked);
+  connect(cut_history_list_, &QListWidget::itemClicked, this,
+          &RightSidebar::onCutHistoryItemClicked);
   // "还原原始"按钮 → 发出 history_item_selected(-1)
-  connect(restore_original_btn_, &QPushButton::clicked, this, [this]() {
-      emit history_item_selected(-1);
-  });
+  connect(restore_original_btn_, &QPushButton::clicked, this,
+          [this]() { emit history_item_selected(-1); });
 
   main_layout_->addWidget(tabs_);
   setLayout(main_layout_);
@@ -239,8 +278,8 @@ void RightSidebar::buildUi() {
 
 void RightSidebar::set_document(ImageDocument *doc) {
   document_ = doc;
-  updateImageInfoTab();         // 刷新图片信息标签页
-  selection_list_->clear();     // 清除选择历史
+  updateImageInfoTab();     // 刷新图片信息标签页
+  selection_list_->clear(); // 清除选择历史
   selection_info_label_->setText("-");
 }
 
@@ -256,11 +295,11 @@ void RightSidebar::update_selection_info(const QRect &image_rect) {
     // 计算几何中心显示坐标（width/2 使用整数除法，配合 Qt6 包含性右边界）
     int cx = image_rect.x() + image_rect.width() / 2;
     int cy = image_rect.y() + image_rect.height() / 2;
-    selection_info_label_->setText(
-        QString("中心(%1,%2)  %3×%4")
-            .arg(cx).arg(cy)
-            .arg(image_rect.width())
-            .arg(image_rect.height()));
+    selection_info_label_->setText(QString("中心(%1,%2)  %3×%4")
+                                       .arg(cx)
+                                       .arg(cy)
+                                       .arg(image_rect.width())
+                                       .arg(image_rect.height()));
   } else {
     selection_info_label_->setText("-");
   }
@@ -286,8 +325,8 @@ void RightSidebar::add_selection(const QRect &image_rect) {
   }
 
   // 创建 64x64 缩略图（保持宽高比）
-  QImage thumb = full_image.copy(clamped).scaled(
-      64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+  QImage thumb = full_image.copy(clamped).scaled(64, 64, Qt::KeepAspectRatio,
+                                                 Qt::SmoothTransformation);
 
   // 显示格式："(x,y) W×H"
   QString label = QString("(%1,%2) %3×%4")
@@ -296,8 +335,8 @@ void RightSidebar::add_selection(const QRect &image_rect) {
                       .arg(image_rect.width())
                       .arg(image_rect.height());
 
-  QListWidgetItem *item = new QListWidgetItem(QIcon(QPixmap::fromImage(thumb)),
-                                              label);
+  QListWidgetItem *item =
+      new QListWidgetItem(QIcon(QPixmap::fromImage(thumb)), label);
   // 存储选区矩形到 UserRole，点击时可恢复
   item->setData(Qt::UserRole, image_rect);
   // 新条目插入到列表顶部
@@ -312,8 +351,9 @@ void RightSidebar::add_selection(const QRect &image_rect) {
  * onSelectionHeightChanged → selection_size_changed → resize_selection()
  * → selection_changed → 再次调用更新微调框 → 形成无限反馈循环。
  */
-void RightSidebar::update_selection_size_spinboxes(const QRect& image_rect) {
-  if (!selection_width_spin_ || !selection_height_spin_) return;
+void RightSidebar::update_selection_size_spinboxes(const QRect &image_rect) {
+  if (!selection_width_spin_ || !selection_height_spin_)
+    return;
 
   bool has_selection = image_rect.isValid();
   selection_width_spin_->setEnabled(has_selection);
@@ -335,7 +375,8 @@ void RightSidebar::update_selection_size_spinboxes(const QRect& image_rect) {
  * 同时发送当前高度值，让接收方得到完整的 (width, height) 对。
  */
 void RightSidebar::onSelectionWidthChanged(int value) {
-  if (!selection_height_spin_) return;
+  if (!selection_height_spin_)
+    return;
   emit selection_size_changed(value, selection_height_spin_->value());
 }
 
@@ -344,7 +385,8 @@ void RightSidebar::onSelectionWidthChanged(int value) {
  * 同时发送当前宽度值，让接收方得到完整的 (width, height) 对。
  */
 void RightSidebar::onSelectionHeightChanged(int value) {
-  if (!selection_width_spin_) return;
+  if (!selection_width_spin_)
+    return;
   emit selection_size_changed(selection_width_spin_->value(), value);
 }
 
@@ -352,9 +394,10 @@ void RightSidebar::onSelectionHeightChanged(int value) {
 // 剪切历史
 // ============================================================================
 
-void RightSidebar::add_cut_history_entry(const QString& label) {
-  if (!cut_history_list_) return;
-  QListWidgetItem* item = new QListWidgetItem(label, cut_history_list_);
+void RightSidebar::add_cut_history_entry(const QString &label) {
+  if (!cut_history_list_)
+    return;
+  QListWidgetItem *item = new QListWidgetItem(label, cut_history_list_);
   // 存储列表项索引供点击时使用（注意：存储的是 addItem 之前的 count）
   item->setData(Qt::UserRole, cut_history_list_->count());
   cut_history_list_->addItem(item);
@@ -371,8 +414,9 @@ void RightSidebar::clear_cut_history() {
  * 直接使用列表行索引（row）作为 history_item_selected 信号的参数，
  * MainFrame 通过该索引在 cut_history_ 向量中查找对应的快照。
  */
-void RightSidebar::onCutHistoryItemClicked(QListWidgetItem* item) {
-  if (!item || !cut_history_list_) return;
+void RightSidebar::onCutHistoryItemClicked(QListWidgetItem *item) {
+  if (!item || !cut_history_list_)
+    return;
   int index = cut_history_list_->row(item);
   emit history_item_selected(index);
 }
@@ -418,23 +462,23 @@ void RightSidebar::updateImageInfoTab() {
   // 像素格式转可读字符串
   QString format_str;
   switch (data.format()) {
-    case ImageData::PixelFormat::kGray8:
-      format_str = "8-bit 灰度";
-      break;
-    case ImageData::PixelFormat::kRGB24:
-      format_str = "24-bit RGB";
-      break;
-    case ImageData::PixelFormat::kRGBA32:
-      format_str = "32-bit RGBA";
-      break;
-    default:
-      format_str = "未知";
-      break;
+  case ImageData::PixelFormat::kGray8:
+    format_str = "8-bit 灰度";
+    break;
+  case ImageData::PixelFormat::kRGB24:
+    format_str = "24-bit RGB";
+    break;
+  case ImageData::PixelFormat::kRGBA32:
+    format_str = "32-bit RGBA";
+    break;
+  default:
+    format_str = "未知";
+    break;
   }
   // 如果有文件路径，追加文件扩展名
   if (document_->has_file_path()) {
-    format_str +=
-        QString(" (%1)").arg(QString::fromStdString(document_->metadata().file_format));
+    format_str += QString(" (%1)").arg(
+        QString::fromStdString(document_->metadata().file_format));
   }
   type_label_->setText(format_str);
 }
@@ -462,16 +506,17 @@ namespace {
  *
  * 返回的 cv::Mat 是深拷贝（.clone()），不共享 QImage 的内存。
  */
-cv::Mat qimageToMat(const QImage& img) {
+cv::Mat qimageToMat(const QImage &img) {
   if (img.format() == QImage::Format_Grayscale8) {
     return cv::Mat(img.height(), img.width(), CV_8UC1,
-                   const_cast<uchar*>(img.bits()),
-                   static_cast<size_t>(img.bytesPerLine())).clone();
+                   const_cast<uchar *>(img.bits()),
+                   static_cast<size_t>(img.bytesPerLine()))
+        .clone();
   }
   // RGB888 → BGR（OpenCV 标准色彩顺序）
   QImage rgb = img.convertToFormat(QImage::Format_RGB888);
   cv::Mat mat(rgb.height(), rgb.width(), CV_8UC3,
-              const_cast<uchar*>(rgb.bits()),
+              const_cast<uchar *>(rgb.bits()),
               static_cast<size_t>(rgb.bytesPerLine()));
   cv::Mat bgr;
   cv::cvtColor(mat.clone(), bgr, cv::COLOR_RGB2BGR);
@@ -486,18 +531,18 @@ cv::Mat qimageToMat(const QImage& img) {
  *
  * 返回的 QImage 是深拷贝（.copy()），不共享 cv::Mat 的内存。
  */
-QImage matToQImage(const cv::Mat& mat) {
+QImage matToQImage(const cv::Mat &mat) {
   if (mat.channels() == 1) {
-    return QImage(mat.data, mat.cols, mat.rows,
-                  static_cast<int>(mat.step),
-                  QImage::Format_Grayscale8).copy();
+    return QImage(mat.data, mat.cols, mat.rows, static_cast<int>(mat.step),
+                  QImage::Format_Grayscale8)
+        .copy();
   }
   // BGR → RGB
   cv::Mat rgb;
   cv::cvtColor(mat, rgb, cv::COLOR_BGR2RGB);
-  return QImage(rgb.data, rgb.cols, rgb.rows,
-                static_cast<int>(rgb.step),
-                QImage::Format_RGB888).copy();
+  return QImage(rgb.data, rgb.cols, rgb.rows, static_cast<int>(rgb.step),
+                QImage::Format_RGB888)
+      .copy();
 }
 
 /**
@@ -506,16 +551,16 @@ QImage matToQImage(const cv::Mat& mat) {
  * 对话框大小限制为屏幕的 80%，图像通过 QScrollArea 显示。
  * 使用 Qt::WA_DeleteOnClose 属性确保关闭时自动清理内存。
  */
-void showImageDialog(const QImage& image, const QString& title,
-                     QWidget* parent) {
-  QDialog* dialog = new QDialog(parent);
+void showImageDialog(const QImage &image, const QString &title,
+                     QWidget *parent) {
+  QDialog *dialog = new QDialog(parent);
   dialog->setWindowTitle(title);
   dialog->setAttribute(Qt::WA_DeleteOnClose);
 
-  QVBoxLayout* layout = new QVBoxLayout(dialog);
+  QVBoxLayout *layout = new QVBoxLayout(dialog);
 
-  QScrollArea* scroll = new QScrollArea(dialog);
-  QLabel* label = new QLabel(scroll);
+  QScrollArea *scroll = new QScrollArea(dialog);
+  QLabel *label = new QLabel(scroll);
   label->setPixmap(QPixmap::fromImage(image));
   label->setAlignment(Qt::AlignCenter);
   scroll->setWidget(label);
@@ -524,8 +569,9 @@ void showImageDialog(const QImage& image, const QString& title,
   layout->addWidget(scroll);
 
   // 对话框尺寸取图像大小和屏幕 80% 的较小值，最小 300×200
-  QScreen* screen = QGuiApplication::primaryScreen();
-  QSize screen_size = screen ? screen->availableGeometry().size() : QSize(1920, 1080);
+  QScreen *screen = QGuiApplication::primaryScreen();
+  QSize screen_size =
+      screen ? screen->availableGeometry().size() : QSize(1920, 1080);
   int max_w = screen_size.width() * 4 / 5;
   int max_h = screen_size.height() * 4 / 5;
   QSize dlg_size = image.size().boundedTo(QSize(max_w, max_h));
@@ -534,7 +580,7 @@ void showImageDialog(const QImage& image, const QString& title,
   dialog->show();
 }
 
-}  // namespace
+} // namespace
 
 // ============================================================================
 // 直方图均衡化
@@ -549,11 +595,13 @@ void showImageDialog(const QImage& image, const QString& title,
  * 如果存在选区，仅对选区内图像做均衡化。
  */
 void RightSidebar::onEqualizeHistClicked() {
-  if (!document_ || !document_->is_valid()) return;
+  if (!document_ || !document_->is_valid())
+    return;
 
   ImageDocumentAdapter adapter(document_);
   QImage src = adapter.to_qimage();
-  if (src.isNull()) return;
+  if (src.isNull())
+    return;
 
   // 如果有选区，仅对选区内图像做处理
   if (current_selection_.isValid()) {
@@ -599,42 +647,47 @@ void RightSidebar::onEqualizeHistClicked() {
  * - 彩色图在 HSV 的 V 通道上做 CLAHE
  */
 void RightSidebar::onCLAHEHistClicked() {
-  if (!document_ || !document_->is_valid()) return;
+  if (!document_ || !document_->is_valid())
+    return;
 
   // --- CLAHE 参数配置对话框 ---
   QDialog param_dialog(this);
   param_dialog.setWindowTitle("CLAHE 参数");
   param_dialog.setMinimumWidth(280);
 
-  QFormLayout* form = new QFormLayout(&param_dialog);
+  QFormLayout *form = new QFormLayout(&param_dialog);
 
-  QDoubleSpinBox* clip_spin = new QDoubleSpinBox(&param_dialog);
+  QDoubleSpinBox *clip_spin = new QDoubleSpinBox(&param_dialog);
   clip_spin->setRange(0.1, 40.0);
   clip_spin->setValue(3.0);
   clip_spin->setDecimals(1);
   clip_spin->setSingleStep(0.5);
 
-  QSpinBox* tile_spin = new QSpinBox(&param_dialog);
+  QSpinBox *tile_spin = new QSpinBox(&param_dialog);
   tile_spin->setRange(2, 64);
   tile_spin->setValue(8);
 
   form->addRow("Clip Limit:", clip_spin);
   form->addRow("Tile Grid Size:", tile_spin);
 
-  QDialogButtonBox* buttons = new QDialogButtonBox(
+  QDialogButtonBox *buttons = new QDialogButtonBox(
       QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &param_dialog);
-  connect(buttons, &QDialogButtonBox::accepted, &param_dialog, &QDialog::accept);
-  connect(buttons, &QDialogButtonBox::rejected, &param_dialog, &QDialog::reject);
+  connect(buttons, &QDialogButtonBox::accepted, &param_dialog,
+          &QDialog::accept);
+  connect(buttons, &QDialogButtonBox::rejected, &param_dialog,
+          &QDialog::reject);
   form->addRow(buttons);
 
-  if (param_dialog.exec() != QDialog::Accepted) return;
+  if (param_dialog.exec() != QDialog::Accepted)
+    return;
 
   double clip_limit = clip_spin->value();
   int tile_size = tile_spin->value();
 
   ImageDocumentAdapter adapter(document_);
   QImage src = adapter.to_qimage();
-  if (src.isNull()) return;
+  if (src.isNull())
+    return;
 
   // 如果有选区，仅对选区内图像做处理
   if (current_selection_.isValid()) {
@@ -668,6 +721,58 @@ void RightSidebar::onCLAHEHistClicked() {
 }
 
 // ============================================================================
+// 卷积模糊（OpenCV blur）
+// ============================================================================
+
+/**
+ * @brief 执行卷积模糊处理。
+ *
+ * 从 blur 控件组读取参数：
+ * - ksize = blur_ksize_spin_->value()
+ * - anchor = (blur_anchor_x_spin_->value(), blur_anchor_y_spin_->value())
+ *   -1 表示使用核中心
+ * - borderType = blur_border_combo_->currentData().toInt()
+ *
+ * 如果存在有效选区，仅对选区内图像做模糊处理。
+ * 结果通过 showImageDialog() 在弹出的对话框中显示。
+ *
+ * @note OpenCV blur() 调用代码预留在此处，由用户自行补充。
+ */
+void RightSidebar::onBlurClicked() {
+  if (!document_ || !document_->is_valid())
+    return;
+
+  int ksize = blur_ksize_spin_->value();
+  int anchor_x = blur_anchor_x_spin_->value();
+  int anchor_y = blur_anchor_y_spin_->value();
+  int border_type = blur_border_combo_->currentData().toInt();
+
+  ImageDocumentAdapter adapter(document_);
+  QImage src = adapter.to_qimage();
+  if (src.isNull())
+    return;
+
+  // 如果有选区，仅对选区内图像做处理
+  if (current_selection_.isValid()) {
+    QRect clamped = current_selection_.intersected(src.rect());
+    if (!clamped.isEmpty()) {
+      src = src.copy(clamped);
+    }
+  }
+
+  cv::Mat src_mat = qimageToMat(src);
+
+  // ========================================================================
+  // TODO: 在此补充 OpenCV blur 代码
+  //
+  cv::Mat dst;
+  cv::blur(src_mat, dst, cv::Size(ksize, ksize), cv::Point(anchor_x, anchor_y),
+           border_type);
+  showImageDialog(matToQImage(dst), "卷积模糊", this);
+  // ========================================================================
+}
+
+// ============================================================================
 // 通道增益滑块
 // ============================================================================
 
@@ -693,8 +798,8 @@ void RightSidebar::updateChannelSliders(int colorSpaceIndex) {
   }
 
   // 清除现有滑块（删除 widget 的同时子控件会被 Qt 自动清理）
-  for (auto& cs : channel_sliders_) {
-    QWidget* row = cs.label->parentWidget();
+  for (auto &cs : channel_sliders_) {
+    QWidget *row = cs.label->parentWidget();
     channel_sliders_layout_->removeWidget(row);
     delete row;
   }
@@ -710,43 +815,43 @@ void RightSidebar::updateChannelSliders(int colorSpaceIndex) {
   QVector<ChannelDef> channels;
 
   switch (colorSpaceIndex) {
-    case 0:  // RGB
-      channels = {{"R (红色)", 0, 255, 255},
-                  {"G (绿色)", 0, 255, 255},
-                  {"B (蓝色)", 0, 255, 255}};
-      break;
-    case 1:  // HSV
-      channels = {{"H (色调)", 0, 180, 180},
-                  {"S (饱和度)", 0, 255, 255},
-                  {"V (明度)", 0, 255, 255}};
-      break;
-    case 2:  // LAB
-      channels = {{"L (亮度)", 0, 255, 255},
-                  {"A (绿-红)", 0, 255, 255},
-                  {"B (蓝-黄)", 0, 255, 255}};
-      break;
-    case 3:  // Gray
-      channels = {{"强度", 0, 255, 255}};
-      break;
-    case 4:  // Binary
-      channels = {{"阈值", 0, 255, 128}};
-      break;
-    default:
-      return;
+  case 0: // RGB
+    channels = {{"R (红色)", 0, 255, 255},
+                {"G (绿色)", 0, 255, 255},
+                {"B (蓝色)", 0, 255, 255}};
+    break;
+  case 1: // HSV
+    channels = {{"H (色调)", 0, 180, 180},
+                {"S (饱和度)", 0, 255, 255},
+                {"V (明度)", 0, 255, 255}};
+    break;
+  case 2: // LAB
+    channels = {{"L (亮度)", 0, 255, 255},
+                {"A (绿-红)", 0, 255, 255},
+                {"B (蓝-黄)", 0, 255, 255}};
+    break;
+  case 3: // Gray
+    channels = {{"强度", 0, 255, 255}};
+    break;
+  case 4: // Binary
+    channels = {{"阈值", 0, 255, 128}};
+    break;
+  default:
+    return;
   }
 
   // 为每个通道创建滑块行
-  for (const auto& ch : channels) {
-    QWidget* row = new QWidget(channel_sliders_widget_);
-    QHBoxLayout* row_layout = new QHBoxLayout(row);
+  for (const auto &ch : channels) {
+    QWidget *row = new QWidget(channel_sliders_widget_);
+    QHBoxLayout *row_layout = new QHBoxLayout(row);
     row_layout->setContentsMargins(0, 0, 0, 0);
 
-    QLabel* label = new QLabel(row);
-    QSlider* slider = new QSlider(Qt::Horizontal, row);
+    QLabel *label = new QLabel(row);
+    QSlider *slider = new QSlider(Qt::Horizontal, row);
     slider->setRange(ch.min_val, ch.max_val);
     slider->setValue(ch.default_val);
 
-    QSpinBox* spinbox = new QSpinBox(row);
+    QSpinBox *spinbox = new QSpinBox(row);
     spinbox->setRange(ch.min_val, ch.max_val);
     spinbox->setValue(ch.default_val);
     spinbox->setFixedWidth(60);
@@ -761,12 +866,12 @@ void RightSidebar::updateChannelSliders(int colorSpaceIndex) {
 
     // 滑块和微调框双向同步
     connect(slider, &QSlider::valueChanged, spinbox, &QSpinBox::setValue);
-    connect(spinbox, QOverload<int>::of(&QSpinBox::valueChanged),
-            slider, &QSlider::setValue);
+    connect(spinbox, QOverload<int>::of(&QSpinBox::valueChanged), slider,
+            &QSlider::setValue);
 
     // 任一控件值变化 → 收集所有值并发出 channel_gains_changed
-    connect(slider, &QSlider::valueChanged,
-            this, &RightSidebar::emitChannelGains);
+    connect(slider, &QSlider::valueChanged, this,
+            &RightSidebar::emitChannelGains);
 
     channel_sliders_.append({label, slider, spinbox, base_name});
   }
@@ -780,7 +885,7 @@ void RightSidebar::updateChannelSliders(int colorSpaceIndex) {
  */
 void RightSidebar::emitChannelGains() {
   QVector<int> gains;
-  for (auto& cs : channel_sliders_) {
+  for (auto &cs : channel_sliders_) {
     int val = cs.slider->value();
     gains.append(val);
     // 同步更新标签文本（如 "R (红色): 200"）
@@ -809,7 +914,7 @@ void RightSidebar::enable_color_space_combo(bool enabled) {
 void RightSidebar::reset_color_space_combo() {
   if (colorspace_combo_) {
     colorspace_combo_->blockSignals(true);
-    colorspace_combo_->setCurrentIndex(0);  // RGB
+    colorspace_combo_->setCurrentIndex(0); // RGB
     colorspace_combo_->blockSignals(false);
     updateChannelSliders(0);
   }

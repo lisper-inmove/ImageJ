@@ -13,6 +13,7 @@ class QSpinBox;
 class QTabWidget;
 class QListWidget;
 class QVBoxLayout;
+class QGroupBox;
 class ImageDocument;
 
 /**
@@ -77,6 +78,8 @@ class RightSidebar : public QWidget {
   void onHistogramButtonClicked();
   void onEqualizeHistClicked();
   void onCLAHEHistClicked();
+  /// @brief 卷积模糊按钮点击处理。OpenCV blur 代码预留在此处供用户补充。
+  void onBlurClicked();
   /// 根据色彩空间索引重建通道增益滑块（RGB/HSV/LAB/Gray/Binary）
   void updateChannelSliders(int colorSpaceIndex);
 
@@ -150,6 +153,14 @@ class RightSidebar : public QWidget {
   // --- Tab 4: 剪切历史 ---
   QListWidget* cut_history_list_;   ///< 剪切操作记录列表
   QPushButton* restore_original_btn_; ///< "还原原始"按钮，点击发出 history_item_selected(-1)
+
+  // --- Tab 2: 卷积模糊区域 ---
+  QGroupBox* blur_group_;          ///< 卷积模糊控件组的外框
+  QSpinBox* blur_ksize_spin_;      ///< 卷积核大小（1-31，步长2确保奇数）
+  QSpinBox* blur_anchor_x_spin_;   ///< 锚点 X 坐标（-1=中心）
+  QSpinBox* blur_anchor_y_spin_;   ///< 锚点 Y 坐标（-1=中心）
+  QComboBox* blur_border_combo_;   ///< 边界填充类型下拉框
+  QPushButton* blur_apply_btn_;    ///< "应用"按钮
 
   // --- 状态 ---
   ImageDocument* document_;         ///< 关联的图像文档（不拥有所有权）
