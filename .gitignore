@@ -5,3 +5,4 @@ Testing
 .worktrees
 .claude
 claude-resume
+compile_commands.json
