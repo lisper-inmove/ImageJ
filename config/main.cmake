@@ -1,6 +1,6 @@
 # Core library
 add_library(imagej_core STATIC ${PROJECT_SOURCES} ${PROJECT_HEADERS})
-target_link_libraries(imagej_core PRIVATE Qt${QT_VERSION_MAJOR}::Widgets opencv_core opencv_imgproc opencv_imgcodecs)
+target_link_libraries(imagej_core PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_include_directories(imagej_core PUBLIC ${CMAKE_SOURCE_DIR}/include)
 set_target_properties(imagej_core PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON)
 
@@ -31,8 +31,7 @@ enable_testing()
 file(GLOB_RECURSE TEST_SOURCES
   CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/tests/core/*.cc"
-  "${CMAKE_CURRENT_SOURCE_DIR}/tests/widgets/*.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
 )
 
 if(Qt6Test_FOUND)

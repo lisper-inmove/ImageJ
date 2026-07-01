@@ -8,7 +8,6 @@ project(ImageJ VERSION 0.1 LANGUAGES CXX)
 
 include(config/qtconfig.cmake)
 include(config/main.cmake)
-include(config/opencv.cmake)
 
 if(WIN32)
   include(config/windows/windows.cmake)
